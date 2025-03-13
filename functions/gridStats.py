@@ -9,10 +9,21 @@ Modified on Wed Mar 12 2025
 
 from statistics import stdev
 
-#printStatus = True
+printStatus = False
 #gridSpacing = 5000
 #numSamples = 500
+REGION_SIZE = 9
 
+cellSizes = {
+    "B01": 20,
+    "B02": 10,
+    "B03": 10,
+    "B04": 10,
+    "B05": 20,
+    "B08": 10,
+    "B11": 20,
+    "B12": 20,
+    }
 
 def makeGrid(sampleBand,lineSpace,cellSize):
     grid= {}
@@ -22,6 +33,7 @@ def makeGrid(sampleBand,lineSpace,cellSize):
     aoiHeight = len(sampleBand)*cellSize
     aoiWidth = len(sampleBand[0])*cellSize
     
+    if printStatus: print("aoiHeight ",aoiHeight,", aoiWidth ",aoiWidth, end=', ')
     
     
     grdHorzLns = []
@@ -78,9 +90,10 @@ def getStatsGrid(bandGroup, grid, cellSize):
     #gridToCell = grid["lineSpace"]/cellSize
     
     while rowIndexG < len(grid["horzLns"]):
-        rowIndexR = (rowIndexG * grid["lineSpace"] + grid["cPoinOffset"]) //cellSize
+        rowIndexR =int( (rowIndexG * grid["lineSpace"] + grid["cPoinOffset"]) //cellSize )
         if rowIndexR >= len(bandGroup[0]):
             break
+        if printStatus: print("row ",rowIndexG+1, end=', ')
         cvRow = []
         rowMins = []
         rowMaxs = []
@@ -88,13 +101,14 @@ def getStatsGrid(bandGroup, grid, cellSize):
         rowStDivs = []
         colIndexG = 0
         while colIndexG < len(grid["vertLns"]):
-            colIndexR = (colIndexG * grid["lineSpace"] + grid["cPoinOffset"]) //cellSize
+            colIndexR = int( (colIndexG * grid["lineSpace"] + grid["cPoinOffset"]) //cellSize )
             if colIndexR >= len(bandGroup[0][0]):
                 break
+            
             cvCell = []
             cellVals=[]
             for layer in bandGroup:
-                cellVals.append(layer[rowIndexR,colIndexR])
+                cellVals.append(layer[rowIndexR][colIndexR])
                 cvCell.append(grabRegionStats(layer, colIndexR, rowIndexR, REGION_SIZE))
             
             cvRow.append(cvCell)
@@ -102,34 +116,24 @@ def getStatsGrid(bandGroup, grid, cellSize):
             rowMins.append(min(cellVals))
             rowMaxs.append(max(cellVals))
             rowStDivs.append(stdev(cellVals))
+            colIndexG +=1
         
         stats["Mins"].append(rowMins)
         stats["Maxs"].append(rowMaxs)
         stats["StDivs"].append(rowStDivs)
         stats["Vals"].append(rowVals)
         stats["CoeffVars"].append(cvRow)
+        rowIndexG +=1
     
     return stats
 
 
 def gridStats(sortedBands,lineSpace):
-    REGION_SIZE = 5
-
-    cellSizes = {
-        "B01": 20,
-        "B02": 10,
-        "B03": 10,
-        "B04": 10,
-        "B05": 20,
-        "B08": 10,
-        "B11": 20,
-        "B12": 20,
-        }
-    
-    
+    if printStatus: print("making grid")
     grid = makeGrid(sortedBands["B01"][0], lineSpace,cellSizes["B01"])
     bandStats={}
     for bandKey in sortedBands:
+        if printStatus: print("\nlooking at ",bandKey)
         bandStats[bandKey] = getStatsGrid(sortedBands[bandKey], grid, cellSizes[bandKey])
     
     return bandStats
