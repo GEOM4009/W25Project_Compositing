@@ -51,6 +51,7 @@ def resampleBandsTo10m(img_folder, resampling_method="bilinear", overwrite=True)
     return resampled_files
 
 
+"""
 # Customize the following parameters:
 
 img_folder = "path/to/your/folder"  # Path to the folder with clipped TIFF images
@@ -67,8 +68,7 @@ print(f"Resampled files: {resampled_files}")
 # output - list of resampled 10m TIFF file paths
 
 # Bands must be clipped to the same AOI and have matching metadata
-
-
+"""
 
 
 
