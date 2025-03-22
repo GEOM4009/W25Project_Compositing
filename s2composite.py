@@ -1,15 +1,88 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Sort bands.
+"""Functions for creating Sentinel-2 composites using S2CompoTool."""
 
-@author: adrianacaswell
-"""
-
+import os
+import subprocess
+import shlex
+import glob
+import geopandas as gpd
 import rasterio as rio
 import numpy as np
-import glob
-import os
+
+
+def prepS2(img_folder, shp_path, out_folder):
+    """
+    Clips Sentinel-2 SAFE zip files to area of interest and outputs TIFF file.
+
+    Author: Adriana Caswell
+
+    Parameters
+    ----------
+    img_folder : str
+        Path to folder containing Sentinel-2 SAFE zip files.
+    shp_path : str
+        Path to area of interest (polygon) Shapefile.
+    out_folder : str
+        Path to folder where clipped TIFFs will be output.
+
+    """
+    # check that paths exisit
+    assert os.path.isdir(img_folder), f"{img_folder} does not exist"
+    assert os.path.isfile(shp_path), f"{shp_path} does not exist"
+    assert os.path.isdir(out_folder), f"{out_folder} does not exist"
+
+    # read in shapefle
+    try:
+        shp_gdf = gpd.read_file(shp_path).geometry
+
+    except:
+        raise Exception(f"{shp_path} is not a shapefile")
+
+    # convert CRS to match S2
+    shp_UTM = shp_gdf.to_crs(32632)
+
+    # create union so there is only one polygon
+    if len(shp_UTM) > 1:
+        shp_UTM = shp_UTM.union_all()
+
+    # check if geometry is Polygon
+    if not shp_UTM.geom_type == "Polygon":
+        raise Exception(f"{shp_path} is not a polygon")
+
+    # get shapefile extents
+    xmin, ymin, xmax, ymax = shp_UTM.bounds
+
+    # locate all S2 SAFE files
+    imgs = glob.glob(os.path.join(img_folder, "*.SAFE.zip"))
+
+    # communicate with user
+    try:
+        assert len(imgs) > 0
+        print(f"Clipping and converting {len(imgs)} Sentinel-2 images...")
+
+    except AssertionError:
+        print(f"{img_folder} does not contain any Sentinel-2 SAFE files")
+
+    # iterate through S2 SAFE files
+    for img in imgs:
+
+        # get basename of image for naming output
+        basename = os.path.splitext(os.path.splitext(os.path.split(img)[1])[0])[0]
+        out_file = os.path.join(out_folder, basename)
+
+        # set up command to convert image to datasets
+        cmd = f"gdal_translate -projwin {xmin} {ymax} {xmax} {ymin} -projwin_srs EPSG:32632 -a_nodata 32000 -of GTiff -sds {img} {out_file}.tif"
+        command = shlex.split(cmd)
+
+        # execute command using subprocess
+        subprocess.run(command, capture_output=True, text=True)
+
+        # rename 10 m, 20 m + 60 m outputs descriptively, remove TCI
+        os.rename(f"{out_file}_1.tif", f"{out_file}_10m_clip.tif")
+        os.rename(f"{out_file}_2.tif", f"{out_file}_20m_clip.tif")
+        os.rename(f"{out_file}_3.tif", f"{out_file}_60m_clip.tif")
+        os.remove(f"{out_file}_4.tif")
+
+    print("Clipping and conversion complete.")
 
 
 def sortBands(img_folder):
@@ -188,3 +261,59 @@ def sortBands(img_folder):
     meta60.update({"count": 1})
 
     return band_dict, meta10, meta20, meta60
+
+
+def compositeBands(band_dict, meta10, meta20, meta60, out_folder):
+    """
+    Create a median value composite from band dictionary created using sortBands().
+
+    Author: Adriana Caswell
+
+    Parameters
+    ----------
+    band_dict : dict
+        Dictionary of 3D arrays for each band of interest. Key corrosponds to band of
+        interest: B01, B02, B03, B04, B05, B08, B11, B12. Value is the 3D array containing
+        masked arrays.
+    meta10 : dict
+        Metadata for 10 m bands.
+    meta20 : dict
+        Metadata for 20 m bands.
+    meta60 : dict
+        Metadata for 30 m bands.
+    out_folder : str
+        Path to folder where composite TIFFs will be output.
+
+    """
+    # lists of bands based on resolution
+    bands10 = ["B02", "B03", "B04", "B08"]
+    bands20 = ["B05", "B11", "B12"]
+    bands60 = ["B01"]
+
+    for band_name, band_array in band_dict.items():
+
+        # take the median value of the bands (ignoring masked data)
+        comp = np.ma.median(band_array, axis=0)
+        np.ma.set_fill_value(comp, 32000)  # reset comp value now that it is 2D
+        comp = comp.filled()  # convert to np.array (filling no data values)
+
+        # reshape composite to be 3D array
+        comp_rs = np.reshape(comp, (1, comp.shape[0], comp.shape[1]))
+
+        # set output file
+        out_file = os.path.join(out_folder, band_name + "_composite.tif")
+
+        # write composites
+        if band_name in bands10:
+            with rio.open(out_file, "w", **meta10) as dest:
+                dest.write(comp_rs)
+
+        elif band_name in bands20:
+            with rio.open(out_file, "w", **meta20) as dest:
+                dest.write(comp_rs)
+
+        elif band_name in bands60:
+            with rio.open(out_file, "w", **meta60) as dest:
+                dest.write(comp_rs)
+
+        print(f"{band_name} composite created.")
