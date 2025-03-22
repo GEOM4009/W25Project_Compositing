@@ -28,11 +28,6 @@ def prepS2(img_folder, shp_path, out_folder):
     out_folder : str
         Path to folder where clipped TIFFs will be output.
 
-    Returns
-    -------
-    out_folder : str
-        Path to folder where clipped TIFFs will be output.
-
     """
     # check that paths exisit
     assert os.path.isdir(img_folder), f"{img_folder} does not exist"
@@ -93,8 +88,6 @@ def prepS2(img_folder, shp_path, out_folder):
         os.remove(f"{out_file}_4.tif")
 
     print("Clipping and conversion complete.")
-
-    return out_folder
 
 
 # %% SOURCES

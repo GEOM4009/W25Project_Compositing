@@ -10,12 +10,30 @@ import numpy as np
 import rasterio as rio
 import os
 
-# input - dictionary of 3D arrays
-# output - dictionary of 2D arrays that are median value composites
-
 
 def compositeBands(band_dict, meta10, meta20, meta60, out_folder):
+    """
+    Create a median value composite from band dictionary created using sortBands().
 
+    Author: Adriana Caswell
+
+    Parameters
+    ----------
+    band_dict : dict
+        Dictionary of 3D arrays for each band of interest. Key corrosponds to band of
+        interest: B01, B02, B03, B04, B05, B08, B11, B12. Value is the 3D array containing
+        masked arrays.
+    meta10 : dict
+        Metadata for 10 m bands.
+    meta20 : dict
+        Metadata for 20 m bands.
+    meta60 : dict
+        Metadata for 30 m bands.
+    out_folder : str
+        Path to folder where composite TIFFs will be output.
+
+    """
+    # lists of bands based on resolution
     bands10 = ["B02", "B03", "B04", "B08"]
     bands20 = ["B05", "B11", "B12"]
     bands60 = ["B01"]
