@@ -22,7 +22,7 @@ def prepS2(img_folder, shp_path, out_folder):
     Parameters
     ----------
     img_folder : str
-        Path to folder containing Sentinel-2 SAFE zip files..
+        Path to folder containing Sentinel-2 SAFE zip files.
     shp_path : str
         Path to area of interest (polygon) Shapefile.
     out_folder : str
@@ -44,7 +44,7 @@ def prepS2(img_folder, shp_path, out_folder):
         shp_gdf = gpd.read_file(shp_path).geometry
 
     except:
-        print(f"{shp_path} is not a shapefile")
+        raise Exception(f"{shp_path} is not a shapefile")
 
     # convert CRS to match S2
     shp_UTM = shp_gdf.to_crs(32632)
@@ -79,16 +79,17 @@ def prepS2(img_folder, shp_path, out_folder):
         out_file = os.path.join(out_folder, basename)
 
         # set up command to convert image to datasets
-        cmd = f"gdal_translate -projwin {xmin} {ymax} {xmax} {ymin} -projwin_srs EPSG:32632 -of GTiff -sds {img} {out_file}.tif"
+        cmd = f"gdal_translate -projwin {xmin} {ymax} {xmax} {ymin} -projwin_srs EPSG:32632 -a_nodata 32000 -of GTiff -sds {img} {out_file}.tif"
         command = shlex.split(cmd)
 
         # execute command using subprocess
-        subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True)
+        print(result)
 
-        # rename 10 m and 20 m outputs descriptively, remove TCI and 60 m
+        # rename 10 m, 20 m + 60 m outputs descriptively, remove TCI
         os.rename(f"{out_file}_1.tif", f"{out_file}_10m_clip.tif")
         os.rename(f"{out_file}_2.tif", f"{out_file}_20m_clip.tif")
-        os.remove(f"{out_file}_3.tif")
+        os.rename(f"{out_file}_3.tif", f"{out_file}_60m_clip.tif")
         os.remove(f"{out_file}_4.tif")
 
     print("Clipping and conversion complete.")
