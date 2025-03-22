@@ -79,11 +79,17 @@ def sortBands(img_folder):
                         B04 = src.read(1)
                         B08 = src.read(4)
 
+                        # convert to masked array
+                        B02_ma = np.ma.masked_equal(B02, 32000)
+                        B03_ma = np.ma.masked_equal(B03, 32000)
+                        B04_ma = np.ma.masked_equal(B04, 32000)
+                        B08_ma = np.ma.masked_equal(B08, 32000)
+
                         # append band of interest to bands dict list
-                        bands["B02"].append(B02)
-                        bands["B03"].append(B03)
-                        bands["B04"].append(B04)
-                        bands["B08"].append(B08)
+                        bands["B02"].append(B02_ma)
+                        bands["B03"].append(B03_ma)
+                        bands["B04"].append(B04_ma)
+                        bands["B08"].append(B08_ma)
 
                     # if img metadata doesn't match, notify user
                     except AssertionError:
@@ -115,10 +121,15 @@ def sortBands(img_folder):
                         B11 = src.read(5)
                         B12 = src.read(6)
 
+                        # convert to masked array
+                        B05_ma = np.ma.masked_equal(B05, 32000)
+                        B11_ma = np.ma.masked_equal(B11, 32000)
+                        B12_ma = np.ma.masked_equal(B12, 32000)
+
                         # append band of interest to bands dict list
-                        bands["B05"].append(B05)
-                        bands["B11"].append(B11)
-                        bands["B12"].append(B12)
+                        bands["B05"].append(B05_ma)
+                        bands["B11"].append(B11_ma)
+                        bands["B12"].append(B12_ma)
 
                     # if img metadata doesn't match, notify user
                     except AssertionError:
@@ -148,8 +159,11 @@ def sortBands(img_folder):
                         # select band of interest
                         B01 = src.read(1)
 
+                        # convert to masked array
+                        B01_ma = np.ma.masked_equal(B01, 32000)
+
                         # append band of interest to bands dict list
-                        bands["B01"].append(B01)
+                        bands["B01"].append(B01_ma)
 
                     # if img metadata doesn't match, notify user
                     except AssertionError:
@@ -165,6 +179,11 @@ def sortBands(img_folder):
 
     # convert lists to arrays
     for band_name, band_array in bands.items():
-        bands[band_name] = np.array(band_array, dtype=object)
+        bands[band_name] = np.ma.stack(band_array)
+
+    # update metadata so that it can be used for one band
+    meta10.update({"count": 1})
+    meta20.update({"count": 1})
+    meta60.update({"count": 1})
 
     return bands, meta10, meta20, meta60
