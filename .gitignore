@@ -172,3 +172,8 @@ cython_debug/
 
 # ignore macOS system files
 **/.DS_Store
+
+# ignore tool inputs and outputs
+**.SAFE.zip
+**.tif
+**.xml
