@@ -68,7 +68,7 @@ def prepS2(img_folder, shp_path, out_folder):
     for img in imgs:
 
         # check if file exists
-        assert os.path.isdir(img), f"{img} does not exist"
+        assert os.path.isfile(img), f"{img} does not exist"
 
         # get basename of image for naming output
         basename = os.path.splitext(os.path.splitext(os.path.split(img)[1])[0])[0]
