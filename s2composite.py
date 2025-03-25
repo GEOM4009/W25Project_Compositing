@@ -317,3 +317,51 @@ def compositeBands(band_dict, meta10, meta20, meta60, out_folder):
                 dest.write(comp_rs)
 
         print(f"{band_name} composite created.")
+    
+def resampleBands(img_folder, resampling_method="bilinear", overwrite=True):
+    """
+    Resample Sentinel-2 bands to 10m resolution.
+
+    Parameters
+    ----------
+    img_folder : str
+        Path to folder containing clipped Sentinel-2 TIFF files.
+    resampling_method : str
+        Resampling method ('bilinear', 'nearest', 'cubic'). Default is 'bilinear'.
+    overwrite : bool
+        If True, overwrite original files. If False, create new resampled files.
+
+    Returns
+    -------
+    resampled_files : list
+        List of file paths for the resampled bands.
+    """
+    
+    # Find all clipped TIFF files
+    imgs = glob.glob(os.path.join(img_folder, "*_clip.tif"))
+
+    # Communicate with user
+    print(f"Resampling {len(imgs)} bands to 10m resolution...")
+
+    resampled_files = []
+
+    # Iterate over images and resample
+    for img in imgs:
+        # Set output path (overwrite or create new file)
+        if overwrite:
+            output_file = img
+        else:
+            output_file = img.replace(".tif", "_resampled_10m.tif")
+
+        # GDAL command for resampling
+        cmd = f"gdalwarp -r {resampling_method} -of GTiff -tr 10 10 {img} {output_file}"
+
+        # Execute command using subprocess
+        subprocess.run(shlex.split(cmd), capture_output=True, text=True)
+
+        # Append to list of resampled files
+        resampled_files.append(output_file)
+
+    print("Resampling complete.")
+    return resampled_files
+
