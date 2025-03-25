@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Feb 27  2025
-Modified on Wed Mar 12 2025
+Last Modified on Tue Mar 25 2025
 
 @author: 
 """
 
 
 from statistics import stdev
-import numpy as np
+#import numpy as np
 import numpy.ma as ma
 
 printStatus = False
@@ -121,7 +121,7 @@ def getStatsGrid(bandGroup, grid, cellSize):
                     cellVal= ma.array([layer[rowIndexR][colIndexR]],mask=[0]) 
                     validCellVals =validCellVals.append(cellVal[0])
                 else: cellVal= ma.array([layer[rowIndexR][colIndexR]],mask=[1]) 
-                cellVals.append(cellVal)
+                cellVals=ma.append(cellVals,cellVal)
                 cv = grabRegionStats(layer, colIndexR, rowIndexR, REGION_SIZE)
                 if (cv==None):
                     cvma = maskedDummy
