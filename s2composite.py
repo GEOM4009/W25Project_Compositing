@@ -1,4 +1,4 @@
-"""Functions for creating Sentinel-2 composites using S2CompoTool."""
+"""Functions for S2CompoTool."""
 
 import os
 import subprocess
@@ -6,7 +6,9 @@ import shlex
 import glob
 import geopandas as gpd
 import rasterio as rio
+from rasterio.plot import show
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def prepS2(img_folder, shp_path, out_folder):
@@ -83,6 +85,11 @@ def prepS2(img_folder, shp_path, out_folder):
         os.remove(f"{out_file}_4.tif")
 
     print("Clipping and conversion complete.")
+
+    # Sources:
+    # https://gdal.org/en/stable/programs/gdal_translate.html#gdal-translate
+    # https://gdal.org/en/stable/programs/gdal_translate.html#cmdoption-gdal_translate-sds
+    # https://geospatial-linux.readthedocs.io/en/latest/gdal.html
 
 
 def sortBands(img_folder):
@@ -290,6 +297,8 @@ def compositeBands(band_dict, meta10, meta20, meta60, out_folder):
     bands20 = ["B05", "B11", "B12"]
     bands60 = ["B01"]
 
+    print("Compositing bands...")
+
     for band_name, band_array in band_dict.items():
 
         # take the median value of the bands (ignoring masked data)
@@ -316,10 +325,14 @@ def compositeBands(band_dict, meta10, meta20, meta60, out_folder):
             with rio.open(out_file, "w", **meta60) as dest:
                 dest.write(comp_rs)
 
-        print(f"{band_name} composite created.")
+        print(f"{band_name} median composite created.")
+
+    print("Compositing complete.")
 
 
-def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear", overwrite=True):
+def resampleBandsTo10m(
+    img_folder, out_folder=None, resampling_method="bilinear", overwrite=True
+):
     """
     Resample specific Sentinel-2 bands to 10m resolution.
 
@@ -330,7 +343,7 @@ def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear"
     img_folder : str
         Path to folder containing clipped Sentinel-2 TIFF files.
     out_folder : str, optional
-        Path to folder where resampled TIFFs will be saved. 
+        Path to folder where resampled TIFFs will be saved.
         If None, resampled files will be saved in `img_folder` (default: None).
     resampling_method : str
         Resampling method (default: 'bilinear').
@@ -342,7 +355,6 @@ def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear"
     resampled_files : list
         List of resampled file paths.
     """
-    
     # Validate input folder
     if not os.path.isdir(img_folder):
         raise FileNotFoundError(f"Input folder {img_folder} does not exist.")
@@ -358,14 +370,16 @@ def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear"
 
     # Locate all TIFFs
     imgs = glob.glob(os.path.join(img_folder, "*_composite.tif"))
-    
+
     if not imgs:
         print("No composite TIFFs found. Exiting.")
         return []
 
     resampled_files = []
 
-    print(f"Resampling {len(imgs)} bands to 10m resolution using {resampling_method}...")
+    print(
+        f"Resampling {len(imgs)} bands to 10m resolution using {resampling_method}..."
+    )
 
     for img in imgs:
         band_name = os.path.basename(img).split("_")[0]
@@ -376,8 +390,11 @@ def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear"
             continue
 
         # Set output file path
-        output_file = os.path.join(out_folder, os.path.basename(img)) if overwrite else \
-            os.path.join(out_folder, f"{band_name}_resampled_10m.tif")
+        output_file = (
+            os.path.join(out_folder, os.path.basename(img))
+            if overwrite
+            else os.path.join(out_folder, f"{band_name}_resampled_10m.tif")
+        )
 
         # Skip resampling if overwrite is disabled and output already exists
         if not overwrite and os.path.exists(output_file):
@@ -388,11 +405,15 @@ def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear"
         # GDAL resampling command
         cmd = [
             "gdalwarp",
-            "-r", resampling_method,
-            "-of", "GTiff",
-            "-tr", "10", "10",
+            "-r",
+            resampling_method,
+            "-of",
+            "GTiff",
+            "-tr",
+            "10",
+            "10",
             img,
-            output_file
+            output_file,
         ]
 
         # Execute resampling
@@ -406,5 +427,98 @@ def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear"
             print(f"Resampled: {output_file}")
 
     print("Resampling complete.")
-    
+
     return resampled_files
+
+
+def showRGB(red_band, green_band, blue_band):
+    """
+    Combine red, green, and blue band TIFF files to display RGB composite.
+
+    Author: Adriana Caswell
+
+    Parameters
+    ----------
+    red_band : str
+        Path to TIFF for red band.
+    green_band : str
+        Path to TIFF for green band.
+    blue_band : str
+        Path to TIFF for blue band.
+
+    Returns
+    -------
+    None.
+
+    """
+    with rio.open(red_band) as red_src, rio.open(green_band) as green_src, rio.open(
+        blue_band
+    ) as blue_src:
+
+        red = red_src.read(1).astype(np.float32)
+        green = green_src.read(1).astype(np.float32)
+        blue = blue_src.read(1).astype(np.float32)
+
+    # Stack bands into a 3D array (H, W, 3)
+    rgb = np.stack([red, green, blue], axis=-1)
+
+    # Normalize (if needed, for uint16 or float scaling)
+    rgb = rgb / np.percentile(rgb, 99)  # Scale to 0-1 using the 99th percentile
+    rgb = np.clip(rgb, 0, 1)  # Ensure values are in the range [0, 1]
+
+    # Plot the RGB image
+    plt.figure(figsize=(10, 10))
+    plt.imshow(rgb)
+    plt.show()
+
+    # Source: ChatGPT
+
+
+def showBands(imgs):
+    """
+    Display 8 bands in one figure.
+
+    Author: Adriana Caswell
+
+    Parameters
+    ----------
+    imgs : list of str
+        List of paths to TIFF files.
+
+    Returns
+    -------
+    None.
+
+    """
+    fig, axes = plt.subplots(4, 2, figsize=(21, 21))
+
+    axes = axes.flatten()
+
+    for i, img in enumerate(imgs):
+
+        # can only handle specific number of subplots
+        if i > len(axes):
+            break
+
+        # if file doesn't exist, skip
+        try:
+            assert os.path.isfile(img)
+
+        except AssertionError:
+            print(f"{img} does not exist")
+            break
+
+        # extract band name from file
+        band = os.path.splitext(os.path.splitext(os.path.split(img)[1])[0])[0][:3]
+
+        # open TIFF and plots
+        with rio.open(img) as src:
+
+            show(src, title=band, ax=axes[i])
+
+    plt.show()
+
+    # Sources:
+    # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots.html
+    # https://rasterio.readthedocs.io/en/stable/topics/plotting.html
+    # ChatGPT
