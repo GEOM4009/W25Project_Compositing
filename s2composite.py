@@ -317,51 +317,94 @@ def compositeBands(band_dict, meta10, meta20, meta60, out_folder):
                 dest.write(comp_rs)
 
         print(f"{band_name} composite created.")
-    
-def resampleBands(img_folder, resampling_method="bilinear", overwrite=True):
+
+
+def resampleBandsTo10m(img_folder, out_folder=None, resampling_method="bilinear", overwrite=True):
     """
-    Resample Sentinel-2 bands to 10m resolution.
+    Resample specific Sentinel-2 bands to 10m resolution.
+
+    Author: Mumu Ba
 
     Parameters
     ----------
     img_folder : str
         Path to folder containing clipped Sentinel-2 TIFF files.
+    out_folder : str, optional
+        Path to folder where resampled TIFFs will be saved. 
+        If None, resampled files will be saved in `img_folder` (default: None).
     resampling_method : str
-        Resampling method ('bilinear', 'nearest', 'cubic'). Default is 'bilinear'.
+        Resampling method (default: 'bilinear').
     overwrite : bool
-        If True, overwrite original files. If False, create new resampled files.
+        If True, overwrite original files; if False, save as new files with "_resampled" suffix.
 
     Returns
     -------
     resampled_files : list
-        List of file paths for the resampled bands.
+        List of resampled file paths.
     """
     
-    # Find all clipped TIFF files
-    imgs = glob.glob(os.path.join(img_folder, "*_clip.tif"))
+    # Validate input folder
+    if not os.path.isdir(img_folder):
+        raise FileNotFoundError(f"Input folder {img_folder} does not exist.")
 
-    # Communicate with user
-    print(f"Resampling {len(imgs)} bands to 10m resolution...")
+    # Create output folder if specified
+    if out_folder:
+        os.makedirs(out_folder, exist_ok=True)
+    else:
+        out_folder = img_folder  # Save in same folder by default
+
+    # List of valid bands to resample
+    valid_bands = ["B01", "B02", "B03", "B04", "B05", "B08", "B11", "B12"]
+
+    # Locate all TIFFs
+    imgs = glob.glob(os.path.join(img_folder, "*_composite.tif"))
+    
+    if not imgs:
+        print("No composite TIFFs found. Exiting.")
+        return []
 
     resampled_files = []
 
-    # Iterate over images and resample
+    print(f"Resampling {len(imgs)} bands to 10m resolution using {resampling_method}...")
+
     for img in imgs:
-        # Set output path (overwrite or create new file)
-        if overwrite:
-            output_file = img
+        band_name = os.path.basename(img).split("_")[0]
+
+        # Only resample valid bands
+        if band_name not in valid_bands:
+            print(f"Skipping {img}: Not a valid band.")
+            continue
+
+        # Set output file path
+        output_file = os.path.join(out_folder, os.path.basename(img)) if overwrite else \
+            os.path.join(out_folder, f"{band_name}_resampled_10m.tif")
+
+        # Skip resampling if overwrite is disabled and output already exists
+        if not overwrite and os.path.exists(output_file):
+            print(f"Skipping {output_file}: Already exists.")
+            resampled_files.append(output_file)
+            continue
+
+        # GDAL resampling command
+        cmd = [
+            "gdalwarp",
+            "-r", resampling_method,
+            "-of", "GTiff",
+            "-tr", "10", "10",
+            img,
+            output_file
+        ]
+
+        # Execute resampling
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        # Handle GDAL errors
+        if result.returncode != 0:
+            print(f"Error resampling {img}: {result.stderr}")
         else:
-            output_file = img.replace(".tif", "_resampled_10m.tif")
-
-        # GDAL command for resampling
-        cmd = f"gdalwarp -r {resampling_method} -of GTiff -tr 10 10 {img} {output_file}"
-
-        # Execute command using subprocess
-        subprocess.run(shlex.split(cmd), capture_output=True, text=True)
-
-        # Append to list of resampled files
-        resampled_files.append(output_file)
+            resampled_files.append(output_file)
+            print(f"Resampled: {output_file}")
 
     print("Resampling complete.")
+    
     return resampled_files
-
