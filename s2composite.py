@@ -67,6 +67,9 @@ def prepS2(img_folder, shp_path, out_folder):
     # iterate through S2 SAFE files
     for img in imgs:
 
+        # check if file exists
+        assert os.path.isdir(img), f"{img} does not exist"
+
         # get basename of image for naming output
         basename = os.path.splitext(os.path.splitext(os.path.split(img)[1])[0])[0]
         out_file = os.path.join(out_folder, basename)
