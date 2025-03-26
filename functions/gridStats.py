@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Feb 27  2025
-Last Modified on Tue Mar 25 2025
+Last Modified on Wed Mar 26 2025 5PM
 
 @author: 
 """
@@ -11,7 +11,7 @@ from statistics import stdev
 #import numpy as np
 import numpy.ma as ma
 
-printStatus = False
+printStatus = True
 #gridSpacing = 5000
 #numSamples = 500
 REGION_SIZE = 9
@@ -98,7 +98,7 @@ def getStatsGrid(bandGroup, grid, cellSize):
                        //cellSize )
         if rowIndexR >= len(bandGroup[0]):
             break
-        if printStatus: print("row ",rowIndexG+1, end=', ')
+        if printStatus: print("row ",rowIndexG+1,sep="", end=', ')
         cvRow = ma.array([])
         rowMins = ma.array([])
         rowMaxs = ma.array([])
@@ -114,12 +114,12 @@ def getStatsGrid(bandGroup, grid, cellSize):
             
             cvCell = ma.array([])
             cellVals=ma.array([])
-            validCellVals =[]
+            #validCellVals =[]
             cNumValid =0
             for layer in bandGroup:
                 if (not layer[rowIndexR][colIndexR] is ma.masked):
                     cellVal= ma.array([layer[rowIndexR][colIndexR]],mask=[0]) 
-                    validCellVals =validCellVals.append(cellVal[0])
+                    #validCellVals =validCellVals.append(cellVal[0])
                 else: cellVal= ma.array([layer[rowIndexR][colIndexR]],mask=[1]) 
                 cellVals=ma.append(cellVals,cellVal)
                 cv = grabRegionStats(layer, colIndexR, rowIndexR, REGION_SIZE)
