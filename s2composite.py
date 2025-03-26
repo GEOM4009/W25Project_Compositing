@@ -76,16 +76,31 @@ def prepS2(img_folder, shp_path, out_folder):
 
         # set up command to convert image to datasets
         cmd = f"gdal_translate -projwin {xmin} {ymax} {xmax} {ymin} -projwin_srs EPSG:32632 -a_nodata 32000 -of GTiff -sds {img} {out_file}.tif"
-        command = shlex.split(cmd)
+        command = shlex.split(cmd, posix=False)
 
         # execute command using subprocess
         subprocess.run(command, capture_output=True, text=True)
 
         # rename 10 m, 20 m + 60 m outputs descriptively, remove TCI
-        os.rename(f"{out_file}_1.tif", f"{out_file}_10m_clip.tif")
-        os.rename(f"{out_file}_2.tif", f"{out_file}_20m_clip.tif")
-        os.rename(f"{out_file}_3.tif", f"{out_file}_60m_clip.tif")
-        os.remove(f"{out_file}_4.tif")
+        try:
+            os.rename(f"{out_file}_1.tif", f"{out_file}_10m_clip.tif")
+            os.rename(f"{out_file}_2.tif", f"{out_file}_20m_clip.tif")
+            os.rename(f"{out_file}_3.tif", f"{out_file}_60m_clip.tif")
+            os.remove(f"{out_file}_4.tif")
+        
+        # if the file already exists, remove the files
+        except FileExistsError:
+            print(f"Overwriting {basename}_10m_clip.tif")
+            os.remove(f"{out_file}_10m_clip.tif")
+            os.rename(f"{out_file}_1.tif", f"{out_file}_10m_clip.tif")
+            
+            print(f"Overwriting {basename}_20m_clip.tif")
+            os.remove(f"{out_file}_20m_clip.tif")
+            os.rename(f"{out_file}_2.tif", f"{out_file}_20m_clip.tif")
+            
+            print(f"Overwriting {basename}_60m_clip.tif")
+            os.remove(f"{out_file}_60m_clip.tif")
+            os.rename(f"{out_file}_3.tif", f"{out_file}_60m_clip.tif")
 
     print("Clipping and conversion complete.")
 
