@@ -28,6 +28,33 @@ cellSizes = {
     }
 
 def makeGrid(sampleBand,lineSpace,cellSize):
+    """
+    Creates a Grid Over the Area of Intrest.  Outputs a Dictionary storing grid information.
+
+    Author: Christian Devey
+
+    Parameters
+    ----------
+    sampleBand : arr
+        3D masked array, i.e. an array of Sentinel Bands
+    lineSpace : int
+        The desired spacing in meters between grid lines
+    cellSize : int
+        The resolution of each cell in the sample band in meters
+    
+    
+    Returns
+    -------
+    grid : dict
+        Dictionary representing a grid over the area of interest. 
+        The Keys are
+        "lineSpace": The spacing in meters between lines
+        "horzLns": An array of the height of each horizontal line of the grid
+        "vertLns": An array of the height of each horizontal line of the grid
+    
+    """
+
+    
     grid= {}
     
     # Get spatial data
