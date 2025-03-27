@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>About W25Project_Compositing &#8212; Sentinel-2 Compositing Tool 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="s2composite module" href="s2composite.html" />
+    <link rel="prev" title="Sentinel-2 Compositing Tool Documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="about-w25project-compositing">
+<h1>About W25Project_Compositing<a class="headerlink" href="#about-w25project-compositing" title="Link to this heading">¶</a></h1>
+<section id="sentinel-2-compositing-tool">
+<h2>Sentinel-2 Compositing Tool<a class="headerlink" href="#sentinel-2-compositing-tool" title="Link to this heading">¶</a></h2>
+<p>This tool creates median value composites from
+multiple Sentinel-2 images for B01, B02, B03, B05, B08, B11, and B12. It resamples the composites
+to a finer 10 m resolution and generates detailed statistical analyses of the data. By clipping
+the imagery to a specific area of interest
+(AOI), this tool allows users to focus on relevant regions and ensure that the data used is
+both accurate and tailored for their needs. Additionally, it resamples the composite bands
+to a 10m resolution, enhancing spatial resolution for more precise analysis. The tool provides
+in-depth statistical summaries, such as the mean, variance, and other metrics, helping users
+better understand the data’s characteristics and variability. Developed by Adriana Caswell,
+Christian Devey, and Muhammad Ba, this tool is designed for people  in the field of geospatial
+analysis looking to create median value composites of Sentinel-2 imagery.</p>
+</section>
+<hr class="docutils" />
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Preprocessing</strong>: Clips Sentinel-2 SAFE files to your area of interest (AOI) and converts
+them to TIFF format for further analysis.</p></li>
+<li><p><strong>Compositing</strong>: Creates median value composites from multiple Sentinel-2 bands, ensuring
+a robust representation of the observed area over time.</p></li>
+<li><p><strong>Resampling</strong>: Resamples the composite bands to 10m resolution for higher spatial detail.</p></li>
+<li><p><strong>Statistics</strong>: Provides detailed statistical analysis for each composite band, helping
+to better understand the underlying data patterns.</p></li>
+<li><p><strong>Visualization</strong>: Displays composite bands and individual bands for further visual interpretation
+and analysis.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Clone this repository: <a class="reference external" href="https://github.com/GEOM4009/W25Project_Compositing.git">https://github.com/GEOM4009/W25Project_Compositing.git</a></p></li>
+<li><p>Download and install <a class="reference external" href="https://www.anaconda.com/download#Downloads">Anaconda</a></p></li>
+<li><p>Create a conda environment by navigate to W25Project_Compositing in the Anaconda Prompt
+and running the following command:</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">f</span> <span class="n">s2compo_env</span><span class="o">.</span><span class="n">yml</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Activate the environment</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">activate</span> <span class="n">s2compo</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="5">
+<li><p>Open the Sentinel-2 Composting Tool and follow the Instructions below</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">jupyter</span> <span class="n">lab</span> <span class="n">S2CompoTool</span><span class="o">.</span><span class="n">ipynb</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="instructions">
+<h2>Instructions<a class="headerlink" href="#instructions" title="Link to this heading">¶</a></h2>
+<section id="download-sentinel-2-imagery">
+<h3>1. Download Sentinel-2 Imagery<a class="headerlink" href="#download-sentinel-2-imagery" title="Link to this heading">¶</a></h3>
+<p>Download the Sentinel-2 imagery for your area of interest from the <a class="reference external" href="https://dataspace.copernicus.eu/explore-data/data-collections/sentinel-data/sentinel-2">Copernicus Browser</a>.</p>
+</section>
+<section id="user-input-setup">
+<h3>2. User Input Setup<a class="headerlink" href="#user-input-setup" title="Link to this heading">¶</a></h3>
+<p>Define <strong>User input</strong> variables in the S2CompoTool Jupyter Notebook.</p>
+</section>
+<section id="running-the-code">
+<h3>3. Running the Code<a class="headerlink" href="#running-the-code" title="Link to this heading">¶</a></h3>
+<p>Once the setup is complete, you can <em>Run All Cells</em> or go through the workflow cell-by-cell.</p>
+<section id="preprocessing">
+<h4>3.1 Preprocessing<a class="headerlink" href="#preprocessing" title="Link to this heading">¶</a></h4>
+<p>The tool will automatically preprocess the Sentinel-2 data, clip it to the AOI, and convert
+the bands to TIFF format. The clipped TIFF files will be saved in the user input <code class="docutils literal notranslate"><span class="pre">clippedS2</span></code>
+directory, ensuring they are ready for compositing.</p>
+<p>After this step, users have the option to perform cloud masking
+(cloud masking functionality is not a part of the tool) or remove images with excessive
+cloud cover to improve the compositing results.</p>
+</section>
+<section id="compositing-and-resampling">
+<h4>3.2 Compositing and Resampling<a class="headerlink" href="#compositing-and-resampling" title="Link to this heading">¶</a></h4>
+<p>The tool will create median value composites from the clipped bands and resample them to
+10m resolution for detailed analysis. The generated composites and resampled composites will
+be stored in the <code class="docutils literal notranslate"><span class="pre">composites</span></code> directory:</p>
+<ul class="simple">
+<li><p><strong>Median composites</strong>: Median composites for each band. Saved as B**_composite.tif.</p></li>
+<li><p><strong>Resampled composites</strong>: The median composites resampled to a 10m resolution for improved
+spatial analysis. Saved as B**_resampled10m.tif.</p></li>
+</ul>
+</section>
+<section id="statistics">
+<h4>3.3 Statistics<a class="headerlink" href="#statistics" title="Link to this heading">¶</a></h4>
+<p>Once the median value composites are created, the tool can provide statistics on the composite
+bands to help analyze the data further. The statistics are essential for understanding the
+overall composition of the data and can be used to draw insights for specific applications
+like vegetation analysis or land use classification. Available Statistics:</p>
+<ul class="simple">
+<li><p><strong>Mean</strong>: Average value for each pixel across all the images in the composite.</p></li>
+<li><p><strong>Standard Deviation</strong>: The measure of variation of pixel values in the composite.</p></li>
+<li><p><strong>Min and Max</strong>: The range of pixel values across all the bands in the composite.</p></li>
+</ul>
+</section>
+<section id="visualization">
+<h4>3.4 Visualization<a class="headerlink" href="#visualization" title="Link to this heading">¶</a></h4>
+<p>The tool can display individual bands or RGB composites for visual inspection:</p>
+<ul class="simple">
+<li><p><strong>RGB Composite</strong>: Uses bands B02 (blue), B03 (green), and B04 (red) for generating a
+RGB composite image.</p></li>
+<li><p><strong>Individual Bands</strong>: Displays each band separately, such as B01, B02, etc., to allow
+for detailed analysis of specific wavelengths.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="example-workflow">
+<h2>Example Workflow<a class="headerlink" href="#example-workflow" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>Download Sentinel-2 data</strong></p></li>
+<li><p><strong>Define user inputs</strong>: In the S2CompoTool, specify the input, output, and AOI paths in the user input section.</p></li>
+<li><p><strong>Run S2CompoTool</strong>: Preprocess, create composites, and resample.</p></li>
+<li><p><strong>Visualize results</strong>: View the composites and individual bands for analysis.</p></li>
+<li><p><strong>Analyze the data</strong>: Use the statistics and visual output to gain insights about your area of interest.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
+<p>If you encounter any issues, refer to the following troubleshooting steps:</p>
+<ul class="simple">
+<li><p><strong>Missing Files</strong>: Ensure that all required input files, such as the Sentinel-2 SAFE files and AOI shapefile, are correctly specified in the input section.</p></li>
+<li><p><strong>File Paths</strong>: Make sure all paths are correct and accessible. The script may fail if paths are incorrectly specified or if files are missing.</p></li>
+<li><p><strong>Memory Issues</strong>: If the process takes too long or runs out of memory, try processing smaller regions or reduce the number of bands used.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Adriana Caswell</strong>, <strong>Christian Devey</strong>, and <strong>Muhammad Ba</strong> for the tool’s development</p></li>
+<li><p><strong>Dr. Derek Mueller and Dr. Anders Knudby</strong> for initiating the project and providing guidance throughout its development</p></li>
+</ul>
+<hr class="docutils" />
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Sentinel-2 Compositing Tool</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">About W25Project_Compositing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sentinel-2-compositing-tool">Sentinel-2 Compositing Tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#instructions">Instructions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-workflow">Example Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#credits">Credits</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="s2composite.html">s2composite module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Sentinel-2 Compositing Tool Documentation</a></li>
+      <li>Next: <a href="s2composite.html" title="next chapter">s2composite module</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Adriana Caswell, Christian Devey, and Muhammad Ba.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/README.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

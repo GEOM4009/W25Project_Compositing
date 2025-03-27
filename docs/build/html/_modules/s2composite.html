@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>s2composite &#8212; Sentinel-2 Compositing Tool 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for s2composite</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Functions for S2CompoTool.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">geopandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gpd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">rasterio</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rasterio.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">show</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy.ma</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ma</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">statistics</span><span class="w"> </span><span class="kn">import</span> <span class="n">stdev</span>
+
+
+<div class="viewcode-block" id="prepS2">
+<a class="viewcode-back" href="../s2composite.html#s2composite.prepS2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepS2</span><span class="p">(</span><span class="n">img_folder</span><span class="p">,</span> <span class="n">shp_path</span><span class="p">,</span> <span class="n">out_folder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clips Sentinel-2 SAFE zip files to area of interest and outputs TIFF file.</span>
+
+<span class="sd">    Author: Adriana Caswell</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    img_folder : str</span>
+<span class="sd">        Path to folder containing Sentinel-2 SAFE zip files.</span>
+<span class="sd">    shp_path : str</span>
+<span class="sd">        Path to area of interest (polygon) Shapefile.</span>
+<span class="sd">    out_folder : str</span>
+<span class="sd">        Path to folder where clipped TIFFs will be output.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># check that paths exisit</span>
+    <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">img_folder</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img_folder</span><span class="si">}</span><span class="s2"> does not exist&quot;</span>
+    <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">shp_path</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shp_path</span><span class="si">}</span><span class="s2"> does not exist&quot;</span>
+    <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">out_folder</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_folder</span><span class="si">}</span><span class="s2"> does not exist&quot;</span>
+
+    <span class="c1"># read in shapefle</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">shp_gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">shp_path</span><span class="p">)</span><span class="o">.</span><span class="n">geometry</span>
+
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shp_path</span><span class="si">}</span><span class="s2"> is not a shapefile&quot;</span><span class="p">)</span>
+
+    <span class="c1"># convert CRS to match S2</span>
+    <span class="n">shp_UTM</span> <span class="o">=</span> <span class="n">shp_gdf</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="mi">32632</span><span class="p">)</span>
+
+    <span class="c1"># create union so there is only one polygon</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shp_UTM</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">shp_UTM</span> <span class="o">=</span> <span class="n">shp_UTM</span><span class="o">.</span><span class="n">union_all</span><span class="p">()</span>
+
+    <span class="c1"># check if geometry is Polygon</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">shp_UTM</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">shp_path</span><span class="si">}</span><span class="s2"> is not a polygon&quot;</span><span class="p">)</span>
+
+    <span class="c1"># get shapefile extents</span>
+    <span class="n">xmin</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">shp_UTM</span><span class="o">.</span><span class="n">bounds</span>
+
+    <span class="c1"># locate all S2 SAFE files</span>
+    <span class="n">imgs</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">img_folder</span><span class="p">,</span> <span class="s2">&quot;*.SAFE.zip&quot;</span><span class="p">))</span>
+
+    <span class="c1"># communicate with user</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Clipping and converting </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span><span class="si">}</span><span class="s2"> Sentinel-2 images...&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img_folder</span><span class="si">}</span><span class="s2"> does not contain any Sentinel-2 SAFE files&quot;</span><span class="p">)</span>
+
+    <span class="c1"># iterate through S2 SAFE files</span>
+    <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">imgs</span><span class="p">:</span>
+
+        <span class="c1"># check if file exists</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">img</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2"> does not exist&quot;</span>
+
+        <span class="c1"># get basename of image for naming output</span>
+        <span class="n">basename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">img</span><span class="p">)[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="n">basename</span><span class="p">)</span>
+
+        <span class="c1"># set up command to convert image to datasets</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;gdal_translate -projwin </span><span class="si">{</span><span class="n">xmin</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ymax</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">xmax</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">ymin</span><span class="si">}</span><span class="s2"> -projwin_srs EPSG:32632 -a_nodata 32000 -of GTiff -sds </span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">.tif&quot;</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">posix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># execute command using subprocess</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># rename 10 m, 20 m + 60 m outputs descriptively, remove TCI</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_1.tif&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_10m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_2.tif&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_20m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_3.tif&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_60m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_4.tif&quot;</span><span class="p">)</span>
+
+        <span class="c1"># if the file already exists, remove the files</span>
+        <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overwriting </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">_10m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_10m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_1.tif&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_10m_clip.tif&quot;</span><span class="p">)</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overwriting </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">_20m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_20m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_2.tif&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_20m_clip.tif&quot;</span><span class="p">)</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overwriting </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">_60m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_60m_clip.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_3.tif&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">out_file</span><span class="si">}</span><span class="s2">_60m_clip.tif&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Clipping and conversion complete.&quot;</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Sources:</span>
+    <span class="c1"># https://gdal.org/en/stable/programs/gdal_translate.html#gdal-translate</span>
+    <span class="c1"># https://gdal.org/en/stable/programs/gdal_translate.html#cmdoption-gdal_translate-sds</span>
+    <span class="c1"># https://geospatial-linux.readthedocs.io/en/latest/gdal.html</span>
+
+
+<div class="viewcode-block" id="sortBands">
+<a class="viewcode-back" href="../s2composite.html#s2composite.sortBands">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sortBands</span><span class="p">(</span><span class="n">img_folder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sort Sentinel-2 images by band for bands of interest.</span>
+
+<span class="sd">    Author: Adriana Caswell</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    img_folder : str</span>
+<span class="sd">        Path to folder containing Sentinel-2 TIFF files clipped using prepS2().</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    band_dict : dict</span>
+<span class="sd">        Dictionary of 3D arrays for each band of interest. Key corrosponds to band of</span>
+<span class="sd">        interest: B01, B02, B03, B04, B05, B08, B11, B12. Value is the 3D array containing</span>
+<span class="sd">        masked arrays.</span>
+<span class="sd">    meta10 : dict</span>
+<span class="sd">        Metadata for 10 m bands.</span>
+<span class="sd">    meta20 : dict</span>
+<span class="sd">        Metadata for 20 m bands.</span>
+<span class="sd">    meta60 : dict</span>
+<span class="sd">        Metadata for 60 m bands.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># find all images in folder</span>
+    <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">img_folder</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img_folder</span><span class="si">}</span><span class="s2"> does not exist&quot;</span>
+    <span class="n">imgs</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">img_folder</span><span class="p">,</span> <span class="s2">&quot;*0m_clip.tif&quot;</span><span class="p">))</span>
+
+    <span class="c1"># set up dictionary of empty list</span>
+    <span class="c1"># key = band name, value = empty list to append to</span>
+    <span class="n">band_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;B01&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;B02&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;B03&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;B04&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;B05&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;B08&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;B11&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;B12&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">}</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sorting images by band...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># iterate through list of TIFFs</span>
+    <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">imgs</span><span class="p">:</span>
+
+        <span class="c1"># for the 10 m resolution raster</span>
+        <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_10m_clip.tif&quot;</span><span class="p">):</span>
+
+            <span class="c1"># open raster</span>
+            <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">img</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+
+                <span class="c1"># get 10 m metadata</span>
+                <span class="c1"># check if meta10 exists (from previous 10 m imgs)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">meta10</span>
+
+                    <span class="c1"># if it does, check if img metadata matches meta10</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">assert</span> <span class="n">meta10</span> <span class="o">==</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span>
+
+                        <span class="c1"># select band of interest</span>
+                        <span class="n">B02</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+                        <span class="n">B03</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="n">B04</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">B08</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+
+                        <span class="c1"># convert to masked array</span>
+                        <span class="n">B02_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B02</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+                        <span class="n">B03_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B03</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+                        <span class="n">B04_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B04</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+                        <span class="n">B08_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B08</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+
+                        <span class="c1"># append band of interest to band_dict list</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B02&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B02_ma</span><span class="p">)</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B03&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B03_ma</span><span class="p">)</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B04&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B04_ma</span><span class="p">)</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B08&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B08_ma</span><span class="p">)</span>
+
+                    <span class="c1"># if img metadata doesn&#39;t match, notify user</span>
+                    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2"> metadata is inconsistent with other 10 m images. Unable to sort image bands.&quot;</span>
+                        <span class="p">)</span>
+
+                <span class="c1"># if meta10 doesn&#39;t exist, create variable</span>
+                <span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+                    <span class="n">meta10</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span>
+
+        <span class="c1"># for the 20 m resolution raster</span>
+        <span class="k">elif</span> <span class="n">img</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_20m_clip.tif&quot;</span><span class="p">):</span>
+
+            <span class="c1"># open raster</span>
+            <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">img</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+
+                <span class="c1"># get 20 m metadata</span>
+                <span class="c1"># check if meta20 exists (from previous 20 m imgs)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">meta20</span>
+
+                    <span class="c1"># if it does, check if img metadata matches meta10</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">assert</span> <span class="n">meta20</span> <span class="o">==</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span>
+
+                        <span class="c1"># select band of interest</span>
+                        <span class="n">B05</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">B11</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+                        <span class="n">B12</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+
+                        <span class="c1"># convert to masked array</span>
+                        <span class="n">B05_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B05</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+                        <span class="n">B11_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B11</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+                        <span class="n">B12_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B12</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+
+                        <span class="c1"># append band of interest to band_dict list</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B05&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B05_ma</span><span class="p">)</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B11&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B11_ma</span><span class="p">)</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B12&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B12_ma</span><span class="p">)</span>
+
+                    <span class="c1"># if img metadata doesn&#39;t match, notify user</span>
+                    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2"> metadata is inconsistent with other 20 m images. Unable to sort image bands.&quot;</span>
+                        <span class="p">)</span>
+
+                <span class="c1"># if meta20 doesn&#39;t exist, create variable</span>
+                <span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+                    <span class="n">meta20</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span>
+
+        <span class="c1"># for the 60 m resolution raster</span>
+        <span class="k">elif</span> <span class="n">img</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_60m_clip.tif&quot;</span><span class="p">):</span>
+
+            <span class="c1"># open raster</span>
+            <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">img</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+
+                <span class="c1"># get 60 m metadata</span>
+                <span class="c1"># check if meta20 exists (from previous 60 m imgs)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">meta60</span>
+
+                    <span class="c1"># if it does, check if img metadata matches meta10</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">assert</span> <span class="n">meta60</span> <span class="o">==</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span>
+
+                        <span class="c1"># select band of interest</span>
+                        <span class="n">B01</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+                        <span class="c1"># convert to masked array</span>
+                        <span class="n">B01_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">B01</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>
+
+                        <span class="c1"># append band of interest to band_dict list</span>
+                        <span class="n">band_dict</span><span class="p">[</span><span class="s2">&quot;B01&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">B01_ma</span><span class="p">)</span>
+
+                    <span class="c1"># if img metadata doesn&#39;t match, notify user</span>
+                    <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2"> metadata is inconsistent with other 60 m images. Unable to sort image bands.&quot;</span>
+                        <span class="p">)</span>
+
+                <span class="c1"># if meta60 doesn&#39;t exist, create variable</span>
+                <span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+                    <span class="n">meta60</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sort complete.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># convert lists to arrays</span>
+    <span class="k">for</span> <span class="n">band_name</span><span class="p">,</span> <span class="n">band_array</span> <span class="ow">in</span> <span class="n">band_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">band_dict</span><span class="p">[</span><span class="n">band_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">band_array</span><span class="p">)</span>
+
+    <span class="c1"># update metadata so that it can be used for one band</span>
+    <span class="n">meta10</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+    <span class="n">meta20</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+    <span class="n">meta60</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">band_dict</span><span class="p">,</span> <span class="n">meta10</span><span class="p">,</span> <span class="n">meta20</span><span class="p">,</span> <span class="n">meta60</span></div>
+
+
+
+<div class="viewcode-block" id="compositeBands">
+<a class="viewcode-back" href="../s2composite.html#s2composite.compositeBands">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compositeBands</span><span class="p">(</span><span class="n">band_dict</span><span class="p">,</span> <span class="n">meta10</span><span class="p">,</span> <span class="n">meta20</span><span class="p">,</span> <span class="n">meta60</span><span class="p">,</span> <span class="n">out_folder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a median value composite from band dictionary created using sortBands().</span>
+
+<span class="sd">    Author: Adriana Caswell</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    band_dict : dict</span>
+<span class="sd">        Dictionary of 3D arrays for each band of interest. Key corrosponds to band of</span>
+<span class="sd">        interest: B01, B02, B03, B04, B05, B08, B11, B12. Value is the 3D array containing</span>
+<span class="sd">        masked arrays.</span>
+<span class="sd">    meta10 : dict</span>
+<span class="sd">        Metadata for 10 m bands.</span>
+<span class="sd">    meta20 : dict</span>
+<span class="sd">        Metadata for 20 m bands.</span>
+<span class="sd">    meta60 : dict</span>
+<span class="sd">        Metadata for 30 m bands.</span>
+<span class="sd">    out_folder : str</span>
+<span class="sd">        Path to folder where composite TIFFs will be output.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># lists of bands based on resolution</span>
+    <span class="n">bands10</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;B02&quot;</span><span class="p">,</span> <span class="s2">&quot;B03&quot;</span><span class="p">,</span> <span class="s2">&quot;B04&quot;</span><span class="p">,</span> <span class="s2">&quot;B08&quot;</span><span class="p">]</span>
+    <span class="n">bands20</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;B05&quot;</span><span class="p">,</span> <span class="s2">&quot;B11&quot;</span><span class="p">,</span> <span class="s2">&quot;B12&quot;</span><span class="p">]</span>
+    <span class="n">bands60</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;B01&quot;</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Compositing bands...&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">band_name</span><span class="p">,</span> <span class="n">band_array</span> <span class="ow">in</span> <span class="n">band_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+        <span class="c1"># take the median value of the bands (ignoring masked data)</span>
+        <span class="n">comp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">band_array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">set_fill_value</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>  <span class="c1"># reset comp value now that it is 2D</span>
+        <span class="n">comp</span> <span class="o">=</span> <span class="n">comp</span><span class="o">.</span><span class="n">filled</span><span class="p">()</span>  <span class="c1"># convert to np.array (filling no data values)</span>
+
+        <span class="c1"># reshape composite to be 3D array</span>
+        <span class="n">comp_rs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">comp</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">comp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">comp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="c1"># set output file</span>
+        <span class="n">out_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="n">band_name</span> <span class="o">+</span> <span class="s2">&quot;_composite.tif&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write composites</span>
+        <span class="k">if</span> <span class="n">band_name</span> <span class="ow">in</span> <span class="n">bands10</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">meta10</span><span class="p">)</span> <span class="k">as</span> <span class="n">dest</span><span class="p">:</span>
+                <span class="n">dest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">comp_rs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">band_name</span> <span class="ow">in</span> <span class="n">bands20</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">meta20</span><span class="p">)</span> <span class="k">as</span> <span class="n">dest</span><span class="p">:</span>
+                <span class="n">dest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">comp_rs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">band_name</span> <span class="ow">in</span> <span class="n">bands60</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">meta60</span><span class="p">)</span> <span class="k">as</span> <span class="n">dest</span><span class="p">:</span>
+                <span class="n">dest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">comp_rs</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">band_name</span><span class="si">}</span><span class="s2"> median composite created.&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Compositing complete.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="resampleBandsTo10m">
+<a class="viewcode-back" href="../s2composite.html#s2composite.resampleBandsTo10m">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resampleBandsTo10m</span><span class="p">(</span>
+    <span class="n">img_folder</span><span class="p">,</span> <span class="n">out_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resampling_method</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Resample specific Sentinel-2 bands to 10m resolution.</span>
+
+<span class="sd">    Author: Mumu Ba</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    img_folder : str</span>
+<span class="sd">        Path to folder containing clipped Sentinel-2 TIFF files.</span>
+<span class="sd">    out_folder : str, optional</span>
+<span class="sd">        Path to folder where resampled TIFFs will be saved.</span>
+<span class="sd">        If None, resampled files will be saved in `img_folder` (default: None).</span>
+<span class="sd">    resampling_method : str</span>
+<span class="sd">        Resampling method (default: &#39;bilinear&#39;).</span>
+<span class="sd">    overwrite : bool</span>
+<span class="sd">        If True, overwrite original files; if False, save as new files with &quot;_resampled&quot; suffix.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    resampled_files : list</span>
+<span class="sd">        List of resampled file paths.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Validate input folder</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">img_folder</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input folder </span><span class="si">{</span><span class="n">img_folder</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create output folder if specified</span>
+    <span class="k">if</span> <span class="n">out_folder</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out_folder</span> <span class="o">=</span> <span class="n">img_folder</span>  <span class="c1"># Save in same folder by default</span>
+
+    <span class="c1"># List of valid bands to resample</span>
+    <span class="n">valid_bands</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;B01&quot;</span><span class="p">,</span> <span class="s2">&quot;B02&quot;</span><span class="p">,</span> <span class="s2">&quot;B03&quot;</span><span class="p">,</span> <span class="s2">&quot;B04&quot;</span><span class="p">,</span> <span class="s2">&quot;B05&quot;</span><span class="p">,</span> <span class="s2">&quot;B08&quot;</span><span class="p">,</span> <span class="s2">&quot;B11&quot;</span><span class="p">,</span> <span class="s2">&quot;B12&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Locate all TIFFs</span>
+    <span class="n">imgs</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">img_folder</span><span class="p">,</span> <span class="s2">&quot;*_composite.tif&quot;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">imgs</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No composite TIFFs found. Exiting.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">resampled_files</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Resampling </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span><span class="si">}</span><span class="s2"> bands to 10m resolution using </span><span class="si">{</span><span class="n">resampling_method</span><span class="si">}</span><span class="s2">...&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">imgs</span><span class="p">:</span>
+        <span class="n">band_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">img</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Only resample valid bands</span>
+        <span class="k">if</span> <span class="n">band_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_bands</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping </span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2">: Not a valid band.&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Set output file path</span>
+        <span class="n">output_file</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">img</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">overwrite</span>
+            <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">band_name</span><span class="si">}</span><span class="s2">_resampled_10m.tif&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Skip resampling if overwrite is disabled and output already exists</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_file</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s2">: Already exists.&quot;</span><span class="p">)</span>
+            <span class="n">resampled_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># GDAL resampling command</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;gdalwarp&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-r&quot;</span><span class="p">,</span>
+            <span class="n">resampling_method</span><span class="p">,</span>
+            <span class="s2">&quot;-of&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;GTiff&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;-tr&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;10&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;10&quot;</span><span class="p">,</span>
+            <span class="n">img</span><span class="p">,</span>
+            <span class="n">output_file</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Execute resampling</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Handle GDAL errors</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error resampling </span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">stderr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">resampled_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resampled: </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Resampling complete.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">resampled_files</span></div>
+
+
+
+<div class="viewcode-block" id="showRGB">
+<a class="viewcode-back" href="../s2composite.html#s2composite.showRGB">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">showRGB</span><span class="p">(</span><span class="n">red_band</span><span class="p">,</span> <span class="n">green_band</span><span class="p">,</span> <span class="n">blue_band</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combine red, green, and blue band TIFF files to display RGB composite.</span>
+
+<span class="sd">    Author: Adriana Caswell</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    red_band : str</span>
+<span class="sd">        Path to TIFF for red band.</span>
+<span class="sd">    green_band : str</span>
+<span class="sd">        Path to TIFF for green band.</span>
+<span class="sd">    blue_band : str</span>
+<span class="sd">        Path to TIFF for blue band.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">red_band</span><span class="p">)</span> <span class="k">as</span> <span class="n">red_src</span><span class="p">,</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">green_band</span><span class="p">)</span> <span class="k">as</span> <span class="n">green_src</span><span class="p">,</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+        <span class="n">blue_band</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">blue_src</span><span class="p">:</span>
+
+        <span class="n">red</span> <span class="o">=</span> <span class="n">red_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">green</span> <span class="o">=</span> <span class="n">green_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">blue</span> <span class="o">=</span> <span class="n">blue_src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># Stack bands into a 3D array (H, W, 3)</span>
+    <span class="n">rgb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">red</span><span class="p">,</span> <span class="n">green</span><span class="p">,</span> <span class="n">blue</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Normalize (if needed, for uint16 or float scaling)</span>
+    <span class="n">rgb</span> <span class="o">=</span> <span class="n">rgb</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">rgb</span><span class="p">,</span> <span class="mi">99</span><span class="p">)</span>  <span class="c1"># Scale to 0-1 using the 99th percentile</span>
+    <span class="n">rgb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">rgb</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Ensure values are in the range [0, 1]</span>
+
+    <span class="c1"># Plot the RGB image</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">rgb</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+    <span class="c1"># Source: ChatGPT</span>
+
+
+<div class="viewcode-block" id="showBands">
+<a class="viewcode-back" href="../s2composite.html#s2composite.showBands">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">showBands</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Display 8 bands in one figure.</span>
+
+<span class="sd">    Author: Adriana Caswell</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    imgs : list of str</span>
+<span class="sd">        List of paths to TIFF files.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">21</span><span class="p">,</span> <span class="mi">21</span><span class="p">))</span>
+
+    <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
+
+        <span class="c1"># can only handle specific number of subplots</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">):</span>
+            <span class="k">break</span>
+
+        <span class="c1"># if file doesn&#39;t exist, skip</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="c1"># extract band name from file</span>
+        <span class="n">band</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">img</span><span class="p">)[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span>
+
+        <span class="c1"># open TIFF and plots</span>
+        <span class="k">with</span> <span class="n">rio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">img</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+
+            <span class="n">show</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">band</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+    <span class="c1"># Sources:</span>
+    <span class="c1"># https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots.html</span>
+    <span class="c1"># https://rasterio.readthedocs.io/en/stable/topics/plotting.html</span>
+    <span class="c1"># ChatGPT</span>
+
+
+<span class="n">printStatus</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="c1"># gridSpacing = 5000</span>
+<span class="c1"># numSamples = 500</span>
+<span class="n">REGION_SIZE</span> <span class="o">=</span> <span class="mi">9</span>
+
+<span class="n">cellSizes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;B01&quot;</span><span class="p">:</span> <span class="mi">60</span><span class="p">,</span>
+    <span class="s2">&quot;B02&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s2">&quot;B03&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s2">&quot;B04&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s2">&quot;B05&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s2">&quot;B08&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s2">&quot;B11&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s2">&quot;B12&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="makeGrid">
+<a class="viewcode-back" href="../s2composite.html#s2composite.makeGrid">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">makeGrid</span><span class="p">(</span><span class="n">sampleBand</span><span class="p">,</span> <span class="n">lineSpace</span><span class="p">,</span> <span class="n">cellSize</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a Grid Over the Area of Intrest.  Outputs a Dictionary storing grid information.</span>
+
+<span class="sd">    Author: Christian Devey</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sampleBand : arr</span>
+<span class="sd">        3D masked array, i.e. an array of Sentinel Bands</span>
+<span class="sd">    lineSpace : int</span>
+<span class="sd">        The desired spacing in meters between grid lines</span>
+<span class="sd">    cellSize : int</span>
+<span class="sd">        The resolution of each cell in the sample band in meters</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    grid : dict</span>
+<span class="sd">        Dictionary representing a grid over the area of interest.</span>
+<span class="sd">        The Keys are</span>
+<span class="sd">        &quot;lineSpace&quot;: The spacing in meters between lines</span>
+<span class="sd">        &quot;horzLns&quot;: An array of the height of each horizontal line of the grid</span>
+<span class="sd">        &quot;vertLns&quot;: An array of the height of each horizontal line of the grid</span>
+<span class="sd">        &quot;cPoinOffset&quot;: The spacing between </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Get spatial data</span>
+
+    <span class="n">aoiHeight</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sampleBand</span><span class="p">)</span> <span class="o">*</span> <span class="n">cellSize</span>
+    <span class="n">aoiWidth</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sampleBand</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">cellSize</span>
+
+    <span class="k">if</span> <span class="n">printStatus</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;aoiHeight &quot;</span><span class="p">,</span> <span class="n">aoiHeight</span><span class="p">,</span> <span class="s2">&quot;, aoiWidth &quot;</span><span class="p">,</span> <span class="n">aoiWidth</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="p">)</span>
+
+    <span class="n">grdHorzLns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">lnHeight</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">aoiHeight</span><span class="p">,</span> <span class="n">lineSpace</span><span class="p">):</span>
+        <span class="n">grdHorzLns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lnHeight</span><span class="p">)</span>
+
+    <span class="n">grdVertLns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">lnDist</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">aoiWidth</span><span class="p">,</span> <span class="n">lineSpace</span><span class="p">):</span>
+        <span class="n">grdVertLns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lnDist</span><span class="p">)</span>
+
+    <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;lineSpace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lineSpace</span>
+    <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;horzLns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grdHorzLns</span>
+    <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;vertLns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grdVertLns</span>
+    <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;cPoinOffset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lineSpace</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">grid</span></div>
+
+
+
+<div class="viewcode-block" id="grabRegionStats">
+<a class="viewcode-back" href="../s2composite.html#s2composite.grabRegionStats">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">grabRegionStats</span><span class="p">(</span><span class="n">imageLayer</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rSize</span><span class="p">):</span>
+    <span class="n">halfRSize</span> <span class="o">=</span> <span class="n">rSize</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span> <span class="o">-</span> <span class="n">halfRSize</span><span class="p">,</span> <span class="n">halfRSize</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">+</span> <span class="n">y</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">imageLayer</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span> <span class="o">-</span> <span class="n">halfRSize</span><span class="p">,</span> <span class="n">halfRSize</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">+</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">imageLayer</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">imageLayer</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">y</span><span class="p">][</span><span class="n">j</span> <span class="o">+</span> <span class="n">x</span><span class="p">]</span> <span class="ow">is</span> <span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">:</span>
+                <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">imageLayer</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">y</span><span class="p">][</span><span class="n">j</span> <span class="o">+</span> <span class="n">x</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">mean</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">stDiv</span> <span class="o">=</span> <span class="n">stdev</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">cv</span> <span class="o">=</span> <span class="n">stDiv</span> <span class="o">/</span> <span class="n">mean</span>
+
+    <span class="k">return</span> <span class="n">cv</span></div>
+
+
+
+<div class="viewcode-block" id="getStatsGrid">
+<a class="viewcode-back" href="../s2composite.html#s2composite.getStatsGrid">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">getStatsGrid</span><span class="p">(</span><span class="n">bandGroup</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cellSize</span><span class="p">):</span>
+    <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Mins&quot;</span><span class="p">:</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
+        <span class="s2">&quot;Maxs&quot;</span><span class="p">:</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
+        <span class="s2">&quot;StDivs&quot;</span><span class="p">:</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
+        <span class="s2">&quot;Vals&quot;</span><span class="p">:</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
+        <span class="s2">&quot;CoeffVars&quot;</span><span class="p">:</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
+        <span class="s2">&quot;NumValidVals&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">}</span>
+    <span class="n">maskedDummy</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">rowIndexG</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># gridToCell = grid[&quot;lineSpace&quot;]/cellSize</span>
+
+    <span class="k">while</span> <span class="n">rowIndexG</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="s2">&quot;horzLns&quot;</span><span class="p">]):</span>
+        <span class="n">rowIndexR</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">rowIndexG</span> <span class="o">*</span> <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;lineSpace&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;cPoinOffset&quot;</span><span class="p">])</span> <span class="o">//</span> <span class="n">cellSize</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">rowIndexR</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bandGroup</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="n">printStatus</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;row &quot;</span><span class="p">,</span> <span class="n">rowIndexG</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="p">)</span>
+        <span class="n">cvRow</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">rowMins</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">rowMaxs</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">rowVals</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">rowStDivs</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">rNumValid</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">colIndexG</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">colIndexG</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="s2">&quot;vertLns&quot;</span><span class="p">]):</span>
+            <span class="n">colIndexR</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">colIndexG</span> <span class="o">*</span> <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;lineSpace&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">grid</span><span class="p">[</span><span class="s2">&quot;cPoinOffset&quot;</span><span class="p">])</span> <span class="o">//</span> <span class="n">cellSize</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">colIndexR</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bandGroup</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="k">break</span>
+
+            <span class="n">cvCell</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="n">cellVals</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="c1"># validCellVals =[]</span>
+            <span class="n">cNumValid</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">bandGroup</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">layer</span><span class="p">[</span><span class="n">rowIndexR</span><span class="p">][</span><span class="n">colIndexR</span><span class="p">]</span> <span class="ow">is</span> <span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">:</span>
+                    <span class="n">cellVal</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">layer</span><span class="p">[</span><span class="n">rowIndexR</span><span class="p">][</span><span class="n">colIndexR</span><span class="p">]],</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="c1"># validCellVals =validCellVals.append(cellVal[0])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cellVal</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">layer</span><span class="p">[</span><span class="n">rowIndexR</span><span class="p">][</span><span class="n">colIndexR</span><span class="p">]],</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">cellVals</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cellVals</span><span class="p">,</span> <span class="n">cellVal</span><span class="p">)</span>
+                <span class="n">cv</span> <span class="o">=</span> <span class="n">grabRegionStats</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">colIndexR</span><span class="p">,</span> <span class="n">rowIndexR</span><span class="p">,</span> <span class="n">REGION_SIZE</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">cv</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">cvma</span> <span class="o">=</span> <span class="n">maskedDummy</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cvma</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cv</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">cvCell</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cvCell</span><span class="p">,</span> <span class="n">cvma</span><span class="p">)</span>
+                <span class="n">cNumValid</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">cvRow</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cvRow</span><span class="p">,</span> <span class="n">cvCell</span><span class="p">)</span>
+            <span class="n">rowVals</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowVals</span><span class="p">,</span> <span class="n">cellVals</span><span class="p">)</span>
+            <span class="n">rNumValid</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cNumValid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cNumValid</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">rowMaxs</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowMaxs</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">cellVals</span><span class="p">))</span>
+                <span class="n">rowMins</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowMins</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">cellVals</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">cNumValid</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">rowStDivs</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowStDivs</span><span class="p">,</span> <span class="n">stdev</span><span class="p">(</span><span class="n">cellVals</span><span class="o">.</span><span class="n">compressed</span><span class="p">()))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rowStDivs</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowStDivs</span><span class="p">,</span> <span class="n">maskedDummy</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rowMaxs</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowMaxs</span><span class="p">,</span> <span class="n">maskedDummy</span><span class="p">)</span>
+                <span class="n">rowMins</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowMins</span><span class="p">,</span> <span class="n">maskedDummy</span><span class="p">)</span>
+                <span class="n">rowStDivs</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowStDivs</span><span class="p">,</span> <span class="n">maskedDummy</span><span class="p">)</span>
+            <span class="n">colIndexG</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;Mins&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;Mins&quot;</span><span class="p">],</span> <span class="n">rowMins</span><span class="p">)</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;Maxs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;Maxs&quot;</span><span class="p">],</span> <span class="n">rowMaxs</span><span class="p">)</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;StDivs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;StDivs&quot;</span><span class="p">],</span> <span class="n">rowStDivs</span><span class="p">)</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;Vals&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;Vals&quot;</span><span class="p">],</span> <span class="n">rowVals</span><span class="p">)</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;CoeffVars&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;CoeffVars&quot;</span><span class="p">],</span> <span class="n">cvRow</span><span class="p">)</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;NumValidVals&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rNumValid</span><span class="p">)</span>
+        <span class="n">rowIndexG</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">stats</span></div>
+
+
+
+<div class="viewcode-block" id="gridStats">
+<a class="viewcode-back" href="../s2composite.html#s2composite.gridStats">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gridStats</span><span class="p">(</span><span class="n">sortedBands</span><span class="p">,</span> <span class="n">lineSpace</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">printStatus</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;making grid&quot;</span><span class="p">)</span>
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">makeGrid</span><span class="p">(</span><span class="n">sortedBands</span><span class="p">[</span><span class="s2">&quot;B01&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">lineSpace</span><span class="p">,</span> <span class="n">cellSizes</span><span class="p">[</span><span class="s2">&quot;B01&quot;</span><span class="p">])</span>
+    <span class="n">bandStats</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">bandKey</span> <span class="ow">in</span> <span class="n">sortedBands</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">printStatus</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">looking at &quot;</span><span class="p">,</span> <span class="n">bandKey</span><span class="p">)</span>
+        <span class="n">bandStats</span><span class="p">[</span><span class="n">bandKey</span><span class="p">]</span> <span class="o">=</span> <span class="n">getStatsGrid</span><span class="p">(</span>
+            <span class="n">sortedBands</span><span class="p">[</span><span class="n">bandKey</span><span class="p">],</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cellSizes</span><span class="p">[</span><span class="n">bandKey</span><span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bandStats</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Sentinel-2 Compositing Tool</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../README.html">About W25Project_Compositing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../s2composite.html">s2composite module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Adriana Caswell, Christian Devey, and Muhammad Ba.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
