@@ -6,12 +6,15 @@ channels:
 dependencies:
   - python
   - numpy
+  - numpydoc
   - jupyterlab
   - geopandas>=1.0
   - matplotlib  
   - rasterio
   - gdal
   - statistics
+  - myst-parser 
+  - sphinx
 
   - pip
   - pip:
