@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath("../../"))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "Sentinel-2 Compositing Tool"
-copyright = "2025, Adriana, Christian, and Muhammad"
-author = "Adriana, Christian, and Muhammad"
+copyright = "2025, Adriana Caswell, Christian Devey, and Muhammad Ba"
+author = "Adriana Caswell, Christian Devey, and Muhammad Ba"
 release = "0.1"
 
 # -- General configuration ---------------------------------------------------
