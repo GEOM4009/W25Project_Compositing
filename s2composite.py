@@ -585,6 +585,7 @@ def makeGrid(sampleBand, lineSpace, cellSize):
         "lineSpace": The spacing in meters between lines
         "horzLns": An array of the height of each horizontal line of the grid
         "vertLns": An array of the height of each horizontal line of the grid
+        "cPoinOffset": The spacing between 
 
     """
     grid = {}
@@ -699,7 +700,7 @@ def getStatsGrid(bandGroup, grid, cellSize):
                 rowMaxs = ma.append(rowMaxs, max(cellVals))
                 rowMins = ma.append(rowMins, min(cellVals))
                 if cNumValid > 2:
-                    rowStDivs = ma.append(rowStDivs, stdev(cellVals))
+                    rowStDivs = ma.append(rowStDivs, stdev(cellVals.compressed()))
                 else:
                     rowStDivs = ma.append(rowStDivs, maskedDummy)
             else:
