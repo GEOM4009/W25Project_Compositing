@@ -1,0 +1,25 @@
+name: s2compo
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python
+  - numpy
+  - numpydoc
+  - jupyterlab
+  - geopandas>=1.0
+  - matplotlib  
+  - rasterio
+  - gdal
+  - statistics
+  - myst-parser 
+  - sphinx
+
+  - pip
+  - pip:
+    - env-canada
+    - nest_asyncio
+    - jupyter-module-loader
+    - pycountry
+    - patsy
