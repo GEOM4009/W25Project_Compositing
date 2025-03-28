@@ -615,6 +615,30 @@ def makeGrid(sampleBand, lineSpace, cellSize):
 
 
 def grabRegionStats(imageLayer, x, y, rSize):
+    """
+    Gets Coefficiant of variation of cells surounding the center cell.  
+    Outputs a float Coefficiant of variation.
+ 
+    Author: Christian Devey
+ 
+    Parameters
+    ----------
+    imageLayer : arr
+        2D masked array, representing a Sentinel Bands
+    x : int
+        The X coordinate of the center cell
+    y : int
+        The Y coordinate of the center cell
+    rSize : The width of the region 
+ 
+ 
+    Returns
+    -------
+    cv : float
+        The coeffician for variation of the cells examined 
+ 
+    """
+    
     halfRSize = rSize // 2
     values = []
 
@@ -639,6 +663,35 @@ def grabRegionStats(imageLayer, x, y, rSize):
 
 
 def getStatsGrid(bandGroup, grid, cellSize):
+    """
+    Calculates and records stats from grid center points.
+
+    Author: Christian Devey
+
+    Parameters
+    ----------
+    bandGroup : arr
+        3D masked arrays, i.e. an array of Sentinel Bands
+    grid : dict
+        Dictionart storing grid information
+    cellSize : int
+        The resolution of each cell in the sample band in meters
+
+
+    Returns
+    -------
+    stats : dict
+        Dictionary With the collected stats.
+        The Keys are
+        "Mins": The Minimum values found at each grid center point
+        "Maxs": The maximum values found at each grid center point
+        "StDivs": The Standard dieveation of the values found at each grid center point
+        "CoeffVars": The coefficients of variation of the points around each center point
+        "NumValidVals":  number of valid data points at the grid centers
+
+    """
+    
+    
     stats = {
         "Mins": ma.array([]),
         "Maxs": ma.array([]),
@@ -721,6 +774,32 @@ def getStatsGrid(bandGroup, grid, cellSize):
 
 
 def gridStats(sortedBands, lineSpace):
+    """
+    Calculates and records stats from grid center points.
+
+    Author: Christian Devey
+
+    Parameters
+    ----------
+    sortedBands : dict
+        Dictionary of 3D masked arrays, i.e. an array of Sentinel Bands
+    lineSpace : int
+        The desired spacing in meters between grid lines
+
+
+    Returns
+    -------
+    bandStats : dict
+        Dictionary With the collected stats.
+        The Keys are
+        "Mins": The Minimum values found at each grid center point
+        "Maxs": The maximum values found at each grid center point
+        "StDivs": The Standard dieveation of the values found at each grid center point
+        "CoeffVars": The coefficients of variation of the points around each center point
+        "NumValidVals":  number of valid data points at the grid centers
+
+    """
+    
     if printStatus:
         print("making grid")
     grid = makeGrid(sortedBands["B01"][0], lineSpace, cellSizes["B01"])
