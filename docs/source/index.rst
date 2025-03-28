@@ -10,6 +10,5 @@ Sentinel-2 Compositing Tool Documentation
 
    README
    s2composite
-   tutorial
    
 

@@ -14,7 +14,6 @@
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorial" href="tutorial.html" />
     <link rel="prev" title="About W25Project_Compositing" href="README.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -64,17 +63,89 @@ masked arrays.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="s2composite.getStatsGrid">
 <span class="sig-prename descclassname"><span class="pre">s2composite.</span></span><span class="sig-name descname"><span class="pre">getStatsGrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bandGroup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cellSize</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/s2composite.html#getStatsGrid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#s2composite.getStatsGrid" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculates and records stats from grid center points.</p>
+<p>Author: Christian Devey</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>bandGroup</strong><span class="classifier">arr</span></dt><dd><p>3D masked arrays, i.e. an array of Sentinel Bands</p>
+</dd>
+<dt><strong>grid</strong><span class="classifier">dict</span></dt><dd><p>Dictionart storing grid information</p>
+</dd>
+<dt><strong>cellSize</strong><span class="classifier">int</span></dt><dd><p>The resolution of each cell in the sample band in meters</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>stats</strong><span class="classifier">dict</span></dt><dd><p>Dictionary With the collected stats.
+The Keys are
+“Mins”: The Minimum values found at each grid center point
+“Maxs”: The maximum values found at each grid center point
+“StDivs”: The Standard dieveation of the values found at each grid center point
+“CoeffVars”: The coefficients of variation of the points around each center point
+“NumValidVals”:  number of valid data points at the grid centers</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="s2composite.grabRegionStats">
 <span class="sig-prename descclassname"><span class="pre">s2composite.</span></span><span class="sig-name descname"><span class="pre">grabRegionStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">imageLayer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rSize</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/s2composite.html#grabRegionStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#s2composite.grabRegionStats" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Gets Coefficiant of variation of cells surounding the center cell.  
+Outputs a float Coefficiant of variation.</p>
+<p>Author: Christian Devey</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>imageLayer</strong><span class="classifier">arr</span></dt><dd><p>2D masked array, representing a Sentinel Bands</p>
+</dd>
+<dt><strong>x</strong><span class="classifier">int</span></dt><dd><p>The X coordinate of the center cell</p>
+</dd>
+<dt><strong>y</strong><span class="classifier">int</span></dt><dd><p>The Y coordinate of the center cell</p>
+</dd>
+<dt><strong>rSize</strong><span class="classifier">The width of the region</span></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>cv</strong><span class="classifier">float</span></dt><dd><p>The coeffician for variation of the cells examined</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="s2composite.gridStats">
 <span class="sig-prename descclassname"><span class="pre">s2composite.</span></span><span class="sig-name descname"><span class="pre">gridStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sortedBands</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lineSpace</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/s2composite.html#gridStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#s2composite.gridStats" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calculates and records stats from grid center points.</p>
+<p>Author: Christian Devey</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>sortedBands</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of 3D masked arrays, i.e. an array of Sentinel Bands</p>
+</dd>
+<dt><strong>lineSpace</strong><span class="classifier">int</span></dt><dd><p>The desired spacing in meters between grid lines</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>bandStats</strong><span class="classifier">dict</span></dt><dd><p>Dictionary With the collected stats.
+The Keys are
+“Mins”: The Minimum values found at each grid center point
+“Maxs”: The maximum values found at each grid center point
+“StDivs”: The Standard dieveation of the values found at each grid center point
+“CoeffVars”: The coefficients of variation of the points around each center point
+“NumValidVals”:  number of valid data points at the grid centers</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="s2composite.makeGrid">
@@ -270,7 +341,6 @@ masked arrays.</p>
 <li class="toctree-l2"><a class="reference internal" href="#s2composite.sortBands"><code class="docutils literal notranslate"><span class="pre">sortBands()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 </ul>
 
 <div class="relations">
@@ -278,7 +348,6 @@ masked arrays.</p>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
       <li>Previous: <a href="README.html" title="previous chapter">About W25Project_Compositing</a></li>
-      <li>Next: <a href="tutorial.html" title="next chapter">Tutorial</a></li>
   </ul></li>
 </ul>
 </div>

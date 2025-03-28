@@ -671,6 +671,30 @@
 <div class="viewcode-block" id="grabRegionStats">
 <a class="viewcode-back" href="../s2composite.html#s2composite.grabRegionStats">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">grabRegionStats</span><span class="p">(</span><span class="n">imageLayer</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rSize</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gets Coefficiant of variation of cells surounding the center cell.  </span>
+<span class="sd">    Outputs a float Coefficiant of variation.</span>
+<span class="sd"> </span>
+<span class="sd">    Author: Christian Devey</span>
+<span class="sd"> </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    imageLayer : arr</span>
+<span class="sd">        2D masked array, representing a Sentinel Bands</span>
+<span class="sd">    x : int</span>
+<span class="sd">        The X coordinate of the center cell</span>
+<span class="sd">    y : int</span>
+<span class="sd">        The Y coordinate of the center cell</span>
+<span class="sd">    rSize : The width of the region </span>
+<span class="sd"> </span>
+<span class="sd"> </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cv : float</span>
+<span class="sd">        The coeffician for variation of the cells examined </span>
+<span class="sd"> </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
     <span class="n">halfRSize</span> <span class="o">=</span> <span class="n">rSize</span> <span class="o">//</span> <span class="mi">2</span>
     <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -698,6 +722,35 @@
 <div class="viewcode-block" id="getStatsGrid">
 <a class="viewcode-back" href="../s2composite.html#s2composite.getStatsGrid">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">getStatsGrid</span><span class="p">(</span><span class="n">bandGroup</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cellSize</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates and records stats from grid center points.</span>
+
+<span class="sd">    Author: Christian Devey</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bandGroup : arr</span>
+<span class="sd">        3D masked arrays, i.e. an array of Sentinel Bands</span>
+<span class="sd">    grid : dict</span>
+<span class="sd">        Dictionart storing grid information</span>
+<span class="sd">    cellSize : int</span>
+<span class="sd">        The resolution of each cell in the sample band in meters</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    stats : dict</span>
+<span class="sd">        Dictionary With the collected stats.</span>
+<span class="sd">        The Keys are</span>
+<span class="sd">        &quot;Mins&quot;: The Minimum values found at each grid center point</span>
+<span class="sd">        &quot;Maxs&quot;: The maximum values found at each grid center point</span>
+<span class="sd">        &quot;StDivs&quot;: The Standard dieveation of the values found at each grid center point</span>
+<span class="sd">        &quot;CoeffVars&quot;: The coefficients of variation of the points around each center point</span>
+<span class="sd">        &quot;NumValidVals&quot;:  number of valid data points at the grid centers</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    
     <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">&quot;Mins&quot;</span><span class="p">:</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
         <span class="s2">&quot;Maxs&quot;</span><span class="p">:</span> <span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
@@ -783,6 +836,32 @@
 <div class="viewcode-block" id="gridStats">
 <a class="viewcode-back" href="../s2composite.html#s2composite.gridStats">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">gridStats</span><span class="p">(</span><span class="n">sortedBands</span><span class="p">,</span> <span class="n">lineSpace</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates and records stats from grid center points.</span>
+
+<span class="sd">    Author: Christian Devey</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sortedBands : dict</span>
+<span class="sd">        Dictionary of 3D masked arrays, i.e. an array of Sentinel Bands</span>
+<span class="sd">    lineSpace : int</span>
+<span class="sd">        The desired spacing in meters between grid lines</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bandStats : dict</span>
+<span class="sd">        Dictionary With the collected stats.</span>
+<span class="sd">        The Keys are</span>
+<span class="sd">        &quot;Mins&quot;: The Minimum values found at each grid center point</span>
+<span class="sd">        &quot;Maxs&quot;: The maximum values found at each grid center point</span>
+<span class="sd">        &quot;StDivs&quot;: The Standard dieveation of the values found at each grid center point</span>
+<span class="sd">        &quot;CoeffVars&quot;: The coefficients of variation of the points around each center point</span>
+<span class="sd">        &quot;NumValidVals&quot;:  number of valid data points at the grid centers</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    
     <span class="k">if</span> <span class="n">printStatus</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;making grid&quot;</span><span class="p">)</span>
     <span class="n">grid</span> <span class="o">=</span> <span class="n">makeGrid</span><span class="p">(</span><span class="n">sortedBands</span><span class="p">[</span><span class="s2">&quot;B01&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">lineSpace</span><span class="p">,</span> <span class="n">cellSizes</span><span class="p">[</span><span class="s2">&quot;B01&quot;</span><span class="p">])</span>
@@ -827,7 +906,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../README.html">About W25Project_Compositing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../s2composite.html">s2composite module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
 </ul>
 
 <div class="relations">
