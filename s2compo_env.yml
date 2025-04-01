@@ -15,6 +15,7 @@ dependencies:
   - statistics
   - myst-parser 
   - sphinx
+  - libgdal-jp2openjpeg
 
   - pip
   - pip:
