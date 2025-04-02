@@ -157,8 +157,9 @@ If you encounter issues, try the following solutions:
 ---
 
 ## Credits
-- **Adriana Caswell, Christian Devey, and Muhammad Ba** for developing the tool.
-- **Dr. Derek Mueller and Dr. Anders Knudby** for guidance and project support.
+- **Adriana Caswell, Christian Devey, and Muhammad Ba** for developing the tool, including the design, coding, and testing of the Sentinel-2 Compositing Tool. We contributed to the development of key features, troubleshooting, and documentation to ensure a seamless user experience.
+- **Dr. Derek Mueller** for providing valuable guidance throughout the project, offering feedback, and ensuring that the tool's functionalities align with the project’s goals.
+- **Dr. Anders Knudby** for his support and insights into the project's direction, helping us refine the tool and incorporate best practices in geospatial analysis and compositing.
 
 ---
 
