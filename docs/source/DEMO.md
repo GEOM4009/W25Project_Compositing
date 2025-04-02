@@ -1,10 +1,20 @@
 # Sentinel-2 Compositing Tool Demo
 
-Created by Adriana Caswell, Christian Devey, and Muhammad Ba
+Created by **Adriana Caswell**, **Christian Devey**, and **Muhammad Ba**
 
-This demo showcases the **Sentinel-2 Compositing Tool**, which generates median value composites from Sentinel-2 imagery, resamples them to a 10m resolution, and provides statistical insights. Throughout this guide, I will include **screenshots** demonstrating each step.
+This demo showcases the **Sentinel-2 Compositing Tool**, designed to streamline the process of working with Sentinel-2 imagery. The tool generates **median value composites** from multi-temporal Sentinel-2 data, resamples them to a consistent 10m resolution, and performs various statistical analyses to provide insights into the data. This can be useful for monitoring vegetation, land use, and other environmental factors over time.
 
-Once you run the tool, it will automatically execute all the necessary steps in sequence, from preprocessing to visualization and statistical analysis.
+The tool automates the preprocessing, compositing, and analysis tasks, saving valuable time and ensuring reproducibility. The process includes:
+- **Preprocessing**: Clipping Sentinel-2 SAFE files to an Area of Interest (AOI) and converting them to the appropriate format.
+- **Compositing**: Creating median value composites to summarize multi-temporal data into a single image.
+- **Resampling**: Rescaling the image resolution to 10m for consistency.
+- **Statistical Analysis**: Calculating key statistics such as mean and variance over defined grid areas.
+
+Once you run the tool, it will automatically execute all necessary steps in sequence, from data preprocessing to the final visualization and statistical analysis, making it user-friendly and efficient. However, if you prefer, you can also run each cell individually to have more control over the process and explore the results at each step. 
+
+Throughout this guide, we will provide **screenshots** for each step to help you visualize the process and ensure everything is set up correctly. This tool is especially valuable for researchers and practitioners working with satellite data who need to quickly and accurately analyze large datasets.
+
+By the end of this demo, you will have learned how to use the tool, customize inputs, and interpret the resulting output, enabling you to apply it to your own Sentinel-2 data for environmental monitoring and analysis.
 
 ---
 
