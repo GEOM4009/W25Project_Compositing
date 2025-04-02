@@ -52,7 +52,7 @@ In this section, you will define the paths and other settings necessary for the 
 
 ![folder](https://github.com/user-attachments/assets/9ab84e2a-6577-467a-bf71-6ed1dc5a3a52)
 ![folder2](https://github.com/user-attachments/assets/1d9faa0e-d569-4782-93c6-12be58fc9e21)
-### 3. In the **S2CompoTool Notebook**, define the necessary input variables:
+### 3. In the **S2CompoTool.ipynb Notebook**, define the necessary input variables:
 
 ```python
 inputS2 = "C:/School/GIS/Project/S2"
