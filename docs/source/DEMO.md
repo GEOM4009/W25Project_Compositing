@@ -61,9 +61,9 @@ The `demo/S2` folder is already set up with all the necessary files, and the too
 ## Downloading your own Sentinel-2 Imagery
 First, download Sentinel-2 data from the [Copernicus Browser](https://dataspace.copernicus.eu/explore-data/data-collections/sentinel-data/sentinel-2).
 
-![images](https://github.com/user-attachments/assets/47acc881-d5f6-4048-a8f9-b6f2c8b8d9ae)
-![timerange](https://github.com/user-attachments/assets/7700e50c-e37d-41db-bb5c-f702fa214c53)
-![download](https://github.com/user-attachments/assets/853c0d2c-f1d5-4548-8e7e-ef6b60a57b24)
+![images](images.png)
+![timerange](timerange.png)
+![download](download.png)
 
 # Getting Started
 
