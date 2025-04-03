@@ -67,13 +67,13 @@ First, download Sentinel-2 data from the [Copernicus Browser](https://dataspace.
 
 # Getting Started
 
-### 2. Set Up User Inputs
+### Set Up User Inputs
 In this section, you will define the paths and other settings necessary for the tool to run properly. These variables control the location of your Sentinel-2 data, the clipped data, and where your output files will be saved. Make sure to adjust the paths according to your system and data storage locations.
 
 
 ![folder](folder.png)
 ![folder2](folder2.png)
-### 3. In the **S2CompoTool.ipynb Notebook**, define the necessary input variables:
+### In the **S2CompoTool.ipynb Notebook**, define the necessary input variables:
 
 ```python
 inputS2 = "demo/S2"
@@ -89,21 +89,21 @@ lineSpacing = 5000
 
 These paths should be adjusted based on your own paths.
 
-### 4. Run the Tool
+### Run the Tool
 Once the variables are set, you can **Run All Cells** or **One at a time** in the Jupyter Notebook, and the tool will automatically execute all steps from preprocessing to visualization and statistical analysis.
 
 ---
 
 # Steps Of The Tool
 
-### Step 1 : Preprocessing
+### Preprocessing
 Clip Sentinel-2 SAFE files to the Area of Interest (AOI) and convert them to TIFF format:
 ```python
 s2.prepS2(inputS2, aoiShp, clippedS2)
 ```
 This step will create clipped TIFFs, which I will show in a screenshot.
 
-### Step 2 : Create Composites
+### Create Composites
 The tool generates **median value composites** and resamples them to 10m resolution:
 ```python
 bands, meta10m, meta20m, meta60m = s2.sortBands(clippedS2)
@@ -113,7 +113,7 @@ composites = s2.resampleBandsTo10m(compS2, overwrite = False)
 ![composites](composites.png)
 
 
-### Step 3 and 4 : Generate Composite Statistics & Display Composites
+### Generate Composite Statistics & Display Composites
 The tool calculates key statistics, such as mean and variance, over a grid defined by `lineSpacing`:
 ```python
 stats = s2.gridStats(bands, lineSpacing)
@@ -124,7 +124,7 @@ s2.showBands(composites)
 ```
 ![statsanddisplaybands](statsanddisplaybands.png)
 
-### Step 5 :To generate an RGB composite:
+### To generate an RGB composite:
 ```python
 R = "demo/S2/composites/B04_resampled_10m.tif"
 G = "demo/S2/composites/B03_resampled_10m.tif"
@@ -132,7 +132,7 @@ B = "demo/S2/composites/B02_resampled_10m.tif"
 s2.showRGB(R, G, B)
 ```
 ![rgb](rgb.png)
-### Step 6 :To display a single band:
+### To display a single band:
 ```python
 boi = "demo/S2/composites/B01_resampled_10m.tif"
 with rio.open(boi) as src:
@@ -147,16 +147,16 @@ with rio.open(boi) as src:
 
 If you encounter issues, try the following solutions:
 
-### 1. **File Not Found**
+### **File Not Found**
    - **Solution**: Ensure the paths for the Sentinel-2 data (`inputS2`) and AOI shapefile (`aoiShp`) are correct. Check for typos, extra spaces, and correct file extensions (.SAFE for Sentinel-2 and .shp for shapefiles).
 
-### 2. **Incorrect Paths**
+### **Incorrect Paths**
    - **Solution**: Double-check paths in the **User Inputs** section. Use double backslashes (`\\`) or single forward slashes (`/`) for Windows paths.
 
-### 3. **Memory Issues**
+### **Memory Issues**
    - **Solution**: Try reducing the AOI size or processing fewer bands to lower memory usage. Check system RAM and available space.
 
-### 4. **Output Files Not Generated**
+### **Output Files Not Generated**
    - **Solution**: Verify the output directories are correct and writeable. Check for errors during execution to diagnose any issues.
 
 
