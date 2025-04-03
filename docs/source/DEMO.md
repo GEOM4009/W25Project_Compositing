@@ -110,7 +110,7 @@ bands, meta10m, meta20m, meta60m = s2.sortBands(clippedS2)
 s2.compositeBands(bands, meta10m, meta20m, meta60m, compS2)
 composites = s2.resampleBandsTo10m(compS2, overwrite = False)
 ```
-![composites](https://github.com/user-attachments/assets/86f8ef4b-fcf7-4011-8538-d3f5987f7228)
+![composites](composites.png)
 
 
 ### Step 3 and 4 : Generate Composite Statistics & Display Composites
@@ -122,7 +122,7 @@ To visualize the composite bands:
 ```python
 s2.showBands(composites)
 ```
-![statsand displaybands](https://github.com/user-attachments/assets/095e995c-5907-4607-ad43-4d1f2b7875a0)
+![statsanddisplaybands](statsanddisplaybands.png)
 
 ### Step 5 :To generate an RGB composite:
 ```python
@@ -131,14 +131,14 @@ G = "demo/S2/composites/B03_resampled_10m.tif"
 B = "demo/S2/composites/B02_resampled_10m.tif"
 s2.showRGB(R, G, B)
 ```
-![rgb](https://github.com/user-attachments/assets/528aeea9-bcb2-495f-82ed-9a6d1d0c72e3)
+![rgb](rgb.png)
 ### Step 6 :To display a single band:
 ```python
 boi = "demo/S2/composites/B01_resampled_10m.tif"
 with rio.open(boi) as src:
     show(src)
 ```
-![bandofinterest](https://github.com/user-attachments/assets/714b19d3-e948-4069-826e-7b7182bca7b2)
+![bandofinterest](bandofinterest.png)
 
 
 
