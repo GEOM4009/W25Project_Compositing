@@ -4,8 +4,16 @@ Created by **Adriana Caswell**, **Christian Devey**, and **Muhammad Ba**
 
 This demo showcases the **Sentinel-2 Compositing Tool**, designed to streamline the process of working with Sentinel-2 imagery. The tool generates **median value composites** from multi-temporal Sentinel-2 data, resamples them to a consistent 10m resolution, and performs various statistical analyses to provide insights into the data. This can be useful for monitoring vegetation, land use, and other environmental factors over time.
 
+### Demo Data
+The demo is pre-configured with a set of **demo data** that can be used to test the tool. The demo data includes:
+
+- **StudyArea.shp**: Defines the area of interest (AOI) for analysis.
+- **Sentinel-2 Imagery**: The corresponding Sentinel-2 images aligned with the study area, which are provided in the `demo/S2` folder along with a text file listing the required imagery and download links.
+
+### Running The Tool
 The tool automates the preprocessing, compositing, and analysis tasks, saving valuable time and ensuring reproducibility. The process includes:
-- **Preprocessing**: Clipping Sentinel-2 SAFE files to an Area of Interest (AOI) and converting them to the appropriate format.
+
+- **Preprocessing**: Clipping Sentinel-2 SAFE files to the AOI and converting them to the appropriate format.
 - **Compositing**: Creating median value composites to summarize multi-temporal data into a single image.
 - **Resampling**: Rescaling the image resolution to 10m for consistency.
 - **Statistical Analysis**: Calculating key statistics such as mean and variance over defined grid areas.
@@ -14,7 +22,8 @@ Once you run the tool, it will automatically execute all necessary steps in sequ
 
 Throughout this guide, we will provide **screenshots** for each step to help you visualize the process and ensure everything is set up correctly. This tool is especially valuable for researchers and practitioners working with satellite data who need to quickly and accurately analyze large datasets.
 
-By the end of this demo, you will have learned how to use the tool, customize inputs, and interpret the resulting output, enabling you to apply it to your own Sentinel-2 data for environmental monitoring and analysis.
+By the end of this demo, you will have learned how to use the tool wiht the provided `demo/S2`, also customize inputs, and interpret the resulting output, enabling you to apply it to your own Sentinel-2 data for environmental monitoring and analysis.
+
 
 ---
 
@@ -41,20 +50,22 @@ By the end of this demo, you will have learned how to use the tool, customize in
    ```
    jupyter lab S2CompoTool.ipynb
    ```
+## Demo Data Setup
 
+In the `demo/S2` folder, you will find a text file that outlines the specific Sentinel-2 imagery used in the demo. This file provides detailed information on the imagery aligned with the study area, ensuring that the selected satellite data matches the area of interest for your analysis. The images have already been downloaded and are pre-organized in the folder, so there is no need for you to manually download or save any additional files.
 
+Additionally, the `StudyArea.shp` file is already included in this folder. This shapefile defines the Area of Interest (AOI) for the analysis, which is used to clip the Sentinel-2 imagery. Since the AOI is pre-configured to match the study area, you don’t need to make any modifications. However, if you want to analyze a different region, you can replace this shapefile with one that corresponds to a new AOI.
 
+The `demo/S2` folder is already set up with all the necessary files, and the tool is configured to automatically detect and use them during the preprocessing, compositing, and analysis steps. This setup ensures that you can run the demo without any additional configuration or file management.
 
-## Getting Started
-
-### 1. Download Sentinel-2 Imagery
+## Downloading your own Sentinel-2 Imagery
 First, download Sentinel-2 data from the [Copernicus Browser](https://dataspace.copernicus.eu/explore-data/data-collections/sentinel-data/sentinel-2).
 
 ![images](https://github.com/user-attachments/assets/47acc881-d5f6-4048-a8f9-b6f2c8b8d9ae)
 ![timerange](https://github.com/user-attachments/assets/7700e50c-e37d-41db-bb5c-f702fa214c53)
 ![download](https://github.com/user-attachments/assets/853c0d2c-f1d5-4548-8e7e-ef6b60a57b24)
 
-
+# Getting Started
 
 ### 2. Set Up User Inputs
 In this section, you will define the paths and other settings necessary for the tool to run properly. These variables control the location of your Sentinel-2 data, the clipped data, and where your output files will be saved. Make sure to adjust the paths according to your system and data storage locations.
@@ -65,10 +76,10 @@ In this section, you will define the paths and other settings necessary for the 
 ### 3. In the **S2CompoTool.ipynb Notebook**, define the necessary input variables:
 
 ```python
-inputS2 = "C:/School/GIS/Project/S2"
-clippedS2 = "C:/School/GIS/Project/S2/clipped"
-compS2 = "C:/School/GIS/Project/S2/composites"
-aoiShp = "C:/School/GIS/Project/StudyArea/StudyArea.shp"
+inputS2 = "demo/S2"
+clippedS2 = "demo/S2/clipped"
+compS2 = "demo/S2/composites"
+aoiShp = "demo/S2/StudyArea.shp"
 lineSpacing = 5000
 ```
 ![accesingjupyter](https://github.com/user-attachments/assets/5faab658-0855-4683-9a1f-122b5ea61fea)
@@ -83,7 +94,7 @@ Once the variables are set, you can **Run All Cells** or **One at a time** in th
 
 ---
 
-## Steps Of The Tool
+# Steps Of The Tool
 
 ### Step 1 : Preprocessing
 Clip Sentinel-2 SAFE files to the Area of Interest (AOI) and convert them to TIFF format:
@@ -115,15 +126,15 @@ s2.showBands(composites)
 
 ### Step 5 :To generate an RGB composite:
 ```python
-R = "C:/School/GIS/Project/S2/composites/B04_resampled_10m.tif"
-G = "C:/School/GIS/Project/S2/composites/B03_resampled_10m.tif"
-B = "C:/School/GIS/Project/S2/composites/B02_resampled_10m.tif"
+R = "demo/S2/composites/B04_resampled_10m.tif"
+G = "demo/S2/composites/B03_resampled_10m.tif"
+B = "demo/S2/composites/B02_resampled_10m.tif"
 s2.showRGB(R, G, B)
 ```
 ![rgb](https://github.com/user-attachments/assets/528aeea9-bcb2-495f-82ed-9a6d1d0c72e3)
 ### Step 6 :To display a single band:
 ```python
-boi = "C:/School/GIS/Project/S2/composites/B01_resampled_10m.tif"
+boi = "demo/S2/composites/B01_resampled_10m.tif"
 with rio.open(boi) as src:
     show(src)
 ```
@@ -145,10 +156,7 @@ If you encounter issues, try the following solutions:
 ### 3. **Memory Issues**
    - **Solution**: Try reducing the AOI size or processing fewer bands to lower memory usage. Check system RAM and available space.
 
-### 4. **Missing Python Libraries**
-   - **Solution**: Activate the Conda environment (`s2compo`) and install any missing libraries with `conda install <package>` or `pip install <package>`.
-
-### 5. **Output Files Not Generated**
+### 4. **Output Files Not Generated**
    - **Solution**: Verify the output directories are correct and writeable. Check for errors during execution to diagnose any issues.
 
 
