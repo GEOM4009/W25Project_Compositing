@@ -71,8 +71,8 @@ First, download Sentinel-2 data from the [Copernicus Browser](https://dataspace.
 In this section, you will define the paths and other settings necessary for the tool to run properly. These variables control the location of your Sentinel-2 data, the clipped data, and where your output files will be saved. Make sure to adjust the paths according to your system and data storage locations.
 
 
-![folder](https://github.com/user-attachments/assets/9ab84e2a-6577-467a-bf71-6ed1dc5a3a52)
-![folder2](https://github.com/user-attachments/assets/1d9faa0e-d569-4782-93c6-12be58fc9e21)
+![folder](folder.png)
+![folder2](folder2.png)
 ### 3. In the **S2CompoTool.ipynb Notebook**, define the necessary input variables:
 
 ```python
@@ -82,8 +82,8 @@ compS2 = "demo/S2/composites"
 aoiShp = "demo/S2/StudyArea.shp"
 lineSpacing = 5000
 ```
-![accesingjupyter](https://github.com/user-attachments/assets/5faab658-0855-4683-9a1f-122b5ea61fea)
-![changin paths](https://github.com/user-attachments/assets/b9593e62-4cfb-40da-b1ba-39a435fcad00)
+![accesingjupyter](accesingjupyter.png)
+![changin paths](changinpaths.png)
 
 
 
