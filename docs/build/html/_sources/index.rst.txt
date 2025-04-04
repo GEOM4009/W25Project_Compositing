@@ -9,6 +9,8 @@ Sentinel-2 Compositing Tool Documentation
    :caption: Contents:
 
    README
+   DEMO
    s2composite
+   
    
 
