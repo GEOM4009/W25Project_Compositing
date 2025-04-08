@@ -28,6 +28,23 @@ and analysis.
 
 ---
 
+## Repository contents
+- **README.md** - provides an introduction to the tool and the repository
+- **licence.txt** - file containing the MIT licence associated with this tool
+- **s2compo_env.yml** - conda environment that manages the dependencies for the tool
+- **s2composite.py** - Python module containing all functions needed for the tool
+- **S2CompoTool.ipynb** - Jupyter Notebook allowing users to easily interact with the s2composite module
+- **/docs** - folder containing Sphinx Autodocumentation files
+- **/demo** - folder containing sample input data and folder structure for the demonstration (as outlined in the documentation)
+- **GEOM4009_FinalPresentation.pdf** - a copy of the final presentation associated with this project
+- **GEOM4009_FinalReport.pdf** - a copy of this report
+- **.gitignore** - file indicating files and directories to ignore when making commits
+
+The repository also contains a branch (pages_docs) that contains the Sphinx Autodocumentation 
+html files structured to create the repository’s GitHub Pages. 
+
+---
+
 ## Installation  
 
 1. Clone this repository: [https://github.com/GEOM4009/W25Project_Compositing.git](https://github.com/GEOM4009/W25Project_Compositing.git)
